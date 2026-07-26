@@ -101,7 +101,7 @@ function buildConsumerEmail(data) {
   <div style="max-width:520px;margin:1.5rem auto 0 auto;text-align:center">
     <div style="font-family:Arial,sans-serif;font-weight:bold;font-size:1.1rem;color:#403d3d;margin-bottom:.75rem">Want This Number, Verified?</div>
     <div style="font-size:.9rem;color:#555;line-height:1.6;margin-bottom:1.25rem">A calculator gives you an estimate. A Steward gives you an actual number, backed by real underwriting — usually within a day.</div>
-    <a href="https://stewards.loan" style="display:inline-block;background:#f76732;color:#fffae8;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 2rem;border-radius:2px;text-decoration:none;font-size:.9rem">Talk to a Steward</a>
+    <a href="tel:+16147675273" style="display:inline-block;background:#f76732;color:#fffae8;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 2rem;border-radius:2px;text-decoration:none;font-size:.9rem">Talk to a Steward</a>
   </div>
   <div style="max-width:520px;margin:1.5rem auto 0 auto;font-size:.75rem;color:#999;line-height:1.6">${esc(LEGAL_DISCLAIMER)}</div>
 </body></html>`;
