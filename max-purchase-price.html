@@ -478,6 +478,8 @@
       <input type="hidden" name="monthly_insurance" id="fieldInsurance">
       <input type="hidden" name="monthly_pmi" id="fieldPMI">
       <input type="hidden" name="total_monthly_payment" id="fieldTotal">
+      <input type="hidden" name="down_payment" id="fieldDownPayment">
+      <input type="hidden" name="rate" id="fieldRate">
       <input type="hidden" name="page_url" id="fieldPageUrl">
       <div class="email-row">
         <input type="text" name="email" id="emailInput" class="no-prefix" placeholder="you@email.com" required>
@@ -586,7 +588,7 @@ function calculate() {
     price = solvePriceFromBudget(idealPayment, downPayment, rate, n);
     resultSubText = 'Based on a ' + formatCurrency(idealPayment) + '/mo target payment and estimated ' + document.getElementById('rateP').value + '% rate.';
 
-    finishCalculation(price, downPayment, rate, n, resultSubText);
+    finishCalculation(price, downPayment, rate, n, resultSubText, document.getElementById('rateP').value);
 
   } else {
     const income = parseNum('income');
@@ -609,11 +611,11 @@ function calculate() {
     price = solvePriceFromBudget(maxHousingPayment, downPayment, rate, n);
     resultSubText = 'Based on a ' + (dtiCap*100).toFixed(0) + '% debt-to-income comfort level and estimated ' + document.getElementById('rate').value + '% rate.';
 
-    finishCalculation(price, downPayment, rate, n, resultSubText);
+    finishCalculation(price, downPayment, rate, n, resultSubText, document.getElementById('rate').value);
   }
 }
 
-function finishCalculation(price, downPayment, rate, n, resultSubText) {
+function finishCalculation(price, downPayment, rate, n, resultSubText, rateDisplay) {
   const loanAmount = Math.max(price - downPayment, 0);
   const monthlyPI = rate > 0
     ? loanAmount * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1)
@@ -647,6 +649,8 @@ function finishCalculation(price, downPayment, rate, n, resultSubText) {
     monthly_insurance: monthlyInsurance,
     monthly_pmi: Math.round(monthlyPMI),
     total_monthly_payment: Math.round(totalMonthlyPayment),
+    down_payment: Math.round(downPayment),
+    rate: rateDisplay,
   };
 
   document.getElementById('resultBlock').style.display = 'block';
@@ -709,6 +713,8 @@ async function emailResult(event) {
   document.getElementById('fieldInsurance').value = lastResult.monthly_insurance;
   document.getElementById('fieldPMI').value = lastResult.monthly_pmi;
   document.getElementById('fieldTotal').value = lastResult.total_monthly_payment;
+  document.getElementById('fieldDownPayment').value = lastResult.down_payment;
+  document.getElementById('fieldRate').value = lastResult.rate;
   document.getElementById('fieldPageUrl').value = (window.parent !== window && document.referrer) ? document.referrer : window.location.href;
 
   btn.disabled = true;
