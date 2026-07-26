@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>What's My Max Purchase Price? | The Stewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #fffae8;
+    font-family: 'Frank Ruhl Libre', serif;
+    color: #555;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px 24px 60px 24px;
+  }
+  .eyebrow {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 0 0 16px 0;
+  }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 7vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin: 0 0 16px 0;
+  }
+  h1 span { color: #f76732; }
+  hr.primary {
+    border: none;
+    border-top: 2px solid #f76732;
+    width: 60px;
+    margin: 0 0 20px 0;
+  }
+  .deck {
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.75;
+    color: #555;
+    margin: 0 0 32px 0;
+    max-width: 520px;
+  }
+  .toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  .toggle-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: #dddddd;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 22px 16px;
+    cursor: pointer;
+    min-height: 68px;
+  }
+  .toggle-btn .toggle-label {
+    color: #666;
+  }
+  .toggle-btn.active {
+    background: #f76732;
+    border-color: #f76732;
+  }
+  .toggle-or {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+    flex-shrink: 0;
+  }
+  .toggle-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: #403d3d;
+  }
+  .toggle-btn.active .toggle-label {
+    color: #fffae8;
+  }
+  @media (max-width: 480px) {
+    .toggle-wrap { flex-direction: column; }
+    .toggle-btn { width: 100%; }
+  }
+
+  .field {
+    margin-bottom: 20px;
+  }
+  label {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin-bottom: 4px;
+  }
+  .hint {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 15px;
+    color: #999;
+    margin: 0 0 10px 0;
+  }
+  .input-row {
+    position: relative;
+  }
+  .prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 18px;
+    color: #888;
+    pointer-events: none;
+  }
+  input[type=text], input[type=number], select {
+    width: 100%;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: #403d3d;
+    background: #ffffff;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 16px 16px;
+    padding-left: 30px;
+    outline: none;
+    min-height: 56px;
+  }
+  input.no-prefix { padding-left: 16px; }
+  input:focus, select:focus {
+    border-color: #f76732;
+  }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 480px) {
+    .two-col { grid-template-columns: 1fr; }
+  }
+  .calc-btn {
+    width: 100%;
+    background: #403d3d;
+    color: #fffae8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 22px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    margin-top: 12px;
+    min-height: 64px;
+  }
+  .calc-btn:hover { background: #2f2d2d; }
+
+  .result-block {
+    display: none;
+    margin-top: 40px;
+    background: #403d3d;
+    border-left: 4px solid #f76732;
+    border-radius: 0 3px 3px 0;
+    padding: 36px 32px;
+    text-align: center;
+  }
+  .result-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: #f76732;
+    margin: 0 0 10px 0;
+  }
+  .result-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 56px;
+    color: #f76732;
+    margin: 0 0 20px 0;
+    line-height: 1;
+  }
+  .result-sub {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 16px;
+    color: rgba(255,250,232,0.7);
+    line-height: 1.75;
+    margin: 0;
+  }
+  .breakdown {
+    margin-top: 24px;
+    text-align: left;
+    border-top: 1px solid rgba(255,250,232,0.2);
+    padding-top: 20px;
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 16px;
+    color: rgba(255,250,232,0.85);
+    padding: 6px 0;
+  }
+  .breakdown-row .val {
+    font-weight: 500;
+    color: #fffae8;
+  }
+
+  .cta-block {
+    display: none;
+    margin-top: 24px;
+    background: #fffae8;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 32px;
+    text-align: center;
+  }
+  .cta-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f76732;
+    margin: 0 0 10px 0;
+  }
+  .cta-head {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin: 0 0 14px 0;
+    line-height: 1.15;
+  }
+  .cta-head span { color: #f76732; }
+  .cta-copy {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.7;
+    color: #555;
+    margin: 0 0 24px 0;
+  }
+  .email-row {
+    display: flex;
+    gap: 12px;
+    max-width: 440px;
+    margin: 0 auto 16px auto;
+  }
+  @media (max-width: 480px) {
+    .email-row { flex-direction: column; }
+  }
+  .email-row input {
+    flex: 1;
+    padding-left: 16px;
+  }
+  .email-btn {
+    background: #403d3d;
+    color: #fffae8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 24px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  .email-btn:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+  .divider-word {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 16px 0;
+  }
+  .main-cta {
+    display: inline-block;
+    background: #f76732;
+    color: #fffae8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 16px 40px;
+    border-radius: 2px;
+    text-decoration: none;
+  }
+  .micro {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 16px 0 0 0;
+  }
+  .legal {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 16px;
+    color: #999;
+    line-height: 1.75;
+    margin-top: 32px;
+  }
+  .confirm {
+    display: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #f76732;
+    letter-spacing: 0.05em;
+    margin-top: 8px;
+  }
+  .confirm.error {
+    color: #b23c1a;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>What Can I <span>Afford?</span></h1>
+  <hr class="primary">
+  <p class="deck" id="deckText">Pick one to get started.</p>
+
+  <div class="toggle-wrap">
+    <button type="button" class="toggle-btn active" id="toggleBtnPayment" onclick="setMode('payment')">
+      <span class="toggle-label">Start With My<br>Ideal Payment</span>
+    </button>
+    <span class="toggle-or">Or</span>
+    <button type="button" class="toggle-btn" id="toggleBtnIncome" onclick="setMode('income')">
+      <span class="toggle-label">Start With My<br>Max Approval</span>
+    </button>
+  </div>
+
+  <!-- MODE: PAYMENT -->
+  <div id="modePayment">
+    <div class="field">
+      <label for="idealPayment">Monthly Payment</label>
+      <p class="hint">What you'd be comfortable paying each month, all in.</p>
+      <div class="input-row">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="numeric" id="idealPayment" placeholder="2,200">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="downpaymentP">Down Payment</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="text" inputmode="numeric" id="downpaymentP" placeholder="25,000">
+        </div>
+      </div>
+      <div class="field">
+        <label for="rateP">Est. Interest Rate</label>
+        <div class="input-row">
+          <input type="text" inputmode="decimal" id="rateP" class="no-prefix" placeholder="6.75" style="padding-right:30px;">
+          <span class="prefix" style="left:auto; right:14px;">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="termP">Loan Term</label>
+      <select id="termP">
+        <option value="30">30-Year Fixed</option>
+        <option value="15">15-Year Fixed</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- MODE: INCOME -->
+  <div id="modeIncome" style="display:none;">
+    <div class="field">
+      <label for="income">Annual Household Income</label>
+      <div class="input-row">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="numeric" id="income" placeholder="95,000">
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="debts">Monthly Debts</label>
+      <p class="hint">Car, student loan, credit card payments. Not rent.</p>
+      <div class="input-row">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="numeric" id="debts" placeholder="450">
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="downpayment">Down Payment</label>
+        <div class="input-row">
+          <span class="prefix">$</span>
+          <input type="text" inputmode="numeric" id="downpayment" placeholder="25,000">
+        </div>
+      </div>
+      <div class="field">
+        <label for="rate">Est. Interest Rate</label>
+        <div class="input-row">
+          <input type="text" inputmode="decimal" id="rate" class="no-prefix" placeholder="6.75" style="padding-right:30px;">
+          <span class="prefix" style="left:auto; right:14px;">%</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="term">Loan Term</label>
+      <select id="term">
+        <option value="30">30-Year Fixed</option>
+        <option value="15">15-Year Fixed</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()" id="calcBtn">Calculate My Max Price</button>
+
+  <div class="result-block" id="resultBlock">
+    <p class="result-label">Estimated Range</p>
+    <p class="result-number" id="resultNumber">$0</p>
+    <p class="result-sub" id="resultSub">This is a starting estimate, not a pre-approval.</p>
+    <p style="font-family:'Frank Ruhl Libre',serif; font-weight:300; font-size:15px; color:rgba(255,250,232,0.5); margin:8px 0 0 0;">Not an offer of credit or specific loan terms — based only on what you entered.</p>
+    <button type="button" id="detailsToggle" onclick="toggleDetails()" style="background:none; border:none; color:rgba(255,250,232,0.6); font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; margin-top:16px; padding:8px; text-decoration:underline;">See The Math &darr;</button>
+    <div class="breakdown" id="breakdown" style="display:none;"></div>
+  </div>
+
+  <div class="cta-block" id="ctaBlock">
+    <p class="cta-label">Next Step</p>
+    <h2 class="cta-head">Want This <span>Number, Verified?</span></h2>
+    <p class="cta-copy">A calculator gives you an estimate. A Steward gives you an actual number, backed by real underwriting — usually within a day.</p>
+
+    <div class="email-row">
+      <input type="text" id="emailInput" class="no-prefix" placeholder="you@email.com">
+      <button class="email-btn" id="emailBtn" onclick="emailResult()">Email Me This</button>
+    </div>
+    <p class="confirm" id="emailConfirm">Sent — check your inbox shortly.</p>
+
+    <p class="divider-word">Or</p>
+
+    <a href="https://stewards.loan" class="main-cta">Talk to a Steward</a>
+    <p class="micro">No cost. No obligation.</p>
+  </div>
+
+  <p class="legal">
+    This calculator provides a general estimate based only on the figures you entered and does not constitute a loan approval, pre-qualification, offer of credit, or commitment to lend. It does not represent specific loan terms available to you or advertised by Ruoff Mortgage. Actual purchasing power depends on credit history, property taxes, insurance costs, PMI, program guidelines, and full underwriting review. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.
+  </p>
+
+</div>
+
+<script>
+let currentMode = 'payment';
+const propertyTaxRate = 0.0125 / 12; // 1.25%/yr of purchase price
+const monthlyInsurance = 120; // flat estimate
+const pmiRate = 0.0055 / 12; // ~0.55%/yr of loan amount, standard conventional PMI estimate under 20% down
+
+// Lead capture destination — Zapier Catch Hook. The hook holds ZAPIER_WEBHOOK_SECRET
+// and forwards to stewards-ledger's /api/lead-intake server-side; the browser never
+// sees that secret. Set this to the real Catch Hook URL before going live.
+const LEAD_WEBHOOK_URL = 'REPLACE_WITH_ZAPIER_CATCH_HOOK_URL';
+
+// Live comma-formatting on currency fields — forgiving, readable while typing
+const currencyFieldIds = ['income', 'debts', 'downpayment', 'downpaymentP', 'idealPayment'];
+currencyFieldIds.forEach(function(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', function() {
+    const raw = el.value.replace(/[^0-9]/g, '');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('en-US') : '';
+  });
+});
+
+function parseNum(id) {
+  const v = document.getElementById(id).value.replace(/[^0-9.]/g, '');
+  return parseFloat(v) || 0;
+}
+
+function formatCurrency(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function setMode(mode) {
+  currentMode = mode;
+  const isPayment = mode === 'payment';
+
+  document.getElementById('modePayment').style.display = isPayment ? 'block' : 'none';
+  document.getElementById('modeIncome').style.display = isPayment ? 'none' : 'block';
+
+  document.getElementById('toggleBtnPayment').classList.toggle('active', isPayment);
+  document.getElementById('toggleBtnIncome').classList.toggle('active', !isPayment);
+
+  document.getElementById('deckText').textContent = isPayment
+    ? "What's a payment you'd be comfortable with?"
+    : "What's your income? We'll do the rest.";
+
+  document.getElementById('resultBlock').style.display = 'none';
+  document.getElementById('ctaBlock').style.display = 'none';
+  reportHeight();
+}
+
+// Solve max price from a monthly PITI(+PMI) budget (used by both modes)
+function solvePriceFromBudget(maxHousingPayment, downPayment, rate, n) {
+  let price = 300000;
+  for (let i = 0; i < 30; i++) {
+    const loanAmount = Math.max(price - downPayment, 0);
+    const monthlyPI = rate > 0
+      ? loanAmount * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1)
+      : loanAmount / n;
+    const monthlyTaxIns = (price * propertyTaxRate) + monthlyInsurance;
+    const downPaymentPercent = price > 0 ? downPayment / price : 1;
+    const monthlyPMI = downPaymentPercent < 0.20 ? loanAmount * pmiRate : 0;
+    const totalPayment = monthlyPI + monthlyTaxIns + monthlyPMI;
+
+    if (totalPayment > maxHousingPayment) {
+      price = price * 0.97;
+    } else {
+      price = price * 1.02;
+    }
+  }
+  return price;
+}
+
+// Cache the last calculated result so emailResult() can send it without re-deriving state
+let lastResult = null;
+
+function calculate() {
+  let price, rate, n, resultSubText;
+
+  if (currentMode === 'payment') {
+    const idealPayment = parseNum('idealPayment');
+    const downPayment = parseNum('downpaymentP');
+    rate = parseNum('rateP') / 100 / 12;
+    const termYears = parseInt(document.getElementById('termP').value);
+    n = termYears * 12;
+
+    if (idealPayment <= 0 || rate <= 0) {
+      alert('Enter your ideal payment and estimated rate to calculate.');
+      return;
+    }
+
+    price = solvePriceFromBudget(idealPayment, downPayment, rate, n);
+    resultSubText = 'Based on a ' + formatCurrency(idealPayment) + '/mo target payment and estimated ' + document.getElementById('rateP').value + '% rate.';
+
+    finishCalculation(price, downPayment, rate, n, resultSubText);
+
+  } else {
+    const income = parseNum('income');
+    const debts = parseNum('debts');
+    const downPayment = parseNum('downpayment');
+    rate = parseNum('rate') / 100 / 12;
+    const termYears = parseInt(document.getElementById('term').value);
+    const dtiCap = 0.43; // standard comfort level, no extra decision needed from user
+    n = termYears * 12;
+
+    if (income <= 0 || rate <= 0) {
+      alert('Enter your income and estimated rate to calculate.');
+      return;
+    }
+
+    const monthlyIncome = income / 12;
+    const maxTotalDebtPayment = monthlyIncome * dtiCap;
+    const maxHousingPayment = Math.max(maxTotalDebtPayment - debts, 0);
+
+    price = solvePriceFromBudget(maxHousingPayment, downPayment, rate, n);
+    resultSubText = 'Based on a ' + (dtiCap*100).toFixed(0) + '% debt-to-income comfort level and estimated ' + document.getElementById('rate').value + '% rate.';
+
+    finishCalculation(price, downPayment, rate, n, resultSubText);
+  }
+}
+
+function finishCalculation(price, downPayment, rate, n, resultSubText) {
+  const loanAmount = Math.max(price - downPayment, 0);
+  const monthlyPI = rate > 0
+    ? loanAmount * (rate * Math.pow(1 + rate, n)) / (Math.pow(1 + rate, n) - 1)
+    : loanAmount / n;
+  const monthlyTax = price * propertyTaxRate;
+  const downPaymentPercent = price > 0 ? downPayment / price : 1;
+  const monthlyPMI = downPaymentPercent < 0.20 ? loanAmount * pmiRate : 0;
+  const totalMonthlyPayment = monthlyPI + monthlyTax + monthlyInsurance + monthlyPMI;
+
+  document.getElementById('resultNumber').textContent = formatCurrency(price);
+  document.getElementById('resultSub').textContent = resultSubText;
+
+  const pmiRow = monthlyPMI > 0
+    ? `<div class="breakdown-row"><span>Est. Monthly PMI <span style="opacity:0.6;">(under 20% down)</span></span><span class="val">${formatCurrency(monthlyPMI)}</span></div>`
+    : '';
+
+  document.getElementById('breakdown').innerHTML = `
+    <div class="breakdown-row"><span>Estimated Loan Amount</span><span class="val">${formatCurrency(loanAmount)}</span></div>
+    <div class="breakdown-row"><span>Est. Monthly Principal & Interest</span><span class="val">${formatCurrency(monthlyPI)}</span></div>
+    <div class="breakdown-row"><span>Est. Monthly Property Tax</span><span class="val">${formatCurrency(monthlyTax)}</span></div>
+    <div class="breakdown-row"><span>Est. Monthly Insurance</span><span class="val">${formatCurrency(monthlyInsurance)}</span></div>
+    ${pmiRow}
+    <div class="breakdown-row"><span>Est. Total Monthly Payment</span><span class="val">${formatCurrency(totalMonthlyPayment)}</span></div>
+  `;
+
+  lastResult = {
+    mode: currentMode,
+    price: Math.round(price),
+    monthly_pi: Math.round(monthlyPI),
+    monthly_tax: Math.round(monthlyTax),
+    monthly_insurance: monthlyInsurance,
+    monthly_pmi: Math.round(monthlyPMI),
+    total_monthly_payment: Math.round(totalMonthlyPayment),
+  };
+
+  document.getElementById('resultBlock').style.display = 'block';
+  document.getElementById('ctaBlock').style.display = 'block';
+  document.getElementById('resultBlock').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  reportHeight();
+}
+
+function toggleDetails() {
+  const breakdown = document.getElementById('breakdown');
+  const btn = document.getElementById('detailsToggle');
+  const showing = breakdown.style.display === 'block';
+  breakdown.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing ? 'See The Math ↓' : 'Hide The Math ↑';
+  reportHeight();
+}
+
+// --- Embed auto-resize: tells the parent page (blog post) how tall to make the iframe ---
+const WIDGET_ID = 'max-purchase-price';
+
+function reportHeight() {
+  if (window.parent === window) return; // not embedded in an iframe, skip
+  const height = document.body.scrollHeight;
+  window.parent.postMessage({ stewardsWidget: WIDGET_ID, height: height }, '*');
+}
+
+window.addEventListener('load', reportHeight);
+if (window.ResizeObserver) {
+  new ResizeObserver(reportHeight).observe(document.body);
+} else {
+  window.addEventListener('resize', reportHeight);
+}
+
+async function emailResult() {
+  const emailInput = document.getElementById('emailInput');
+  const confirmEl = document.getElementById('emailConfirm');
+  const btn = document.getElementById('emailBtn');
+  const email = emailInput.value.trim();
+
+  confirmEl.classList.remove('error');
+
+  if (!email || !email.includes('@')) {
+    alert('Enter a valid email address.');
+    return;
+  }
+  if (!lastResult) {
+    alert('Calculate your estimate first.');
+    return;
+  }
+  if (LEAD_WEBHOOK_URL.startsWith('REPLACE_WITH')) {
+    console.warn('[max-purchase-price] LEAD_WEBHOOK_URL not configured — lead not sent.', { email, ...lastResult });
+    confirmEl.textContent = 'Almost there — capture isn’t wired up yet.';
+    confirmEl.classList.add('error');
+    confirmEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  try {
+    await fetch(LEAD_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        // agent_name is deliberately a non-matching sentinel — this is a blog-tool
+        // lead with no agent attribution, so it should land in the unmatched/leads
+        // queue for manual triage rather than auto-assigning to one person's pipeline.
+        agent_name: 'Stewards Web',
+        borrower_name: email,
+        source_form: 'max-purchase-price-widget',
+        borrower_email: email,
+        timestamp: new Date().toISOString(),
+        result: lastResult,
+        page_url: (window.parent !== window && document.referrer) ? document.referrer : window.location.href,
+      }),
+    });
+    confirmEl.textContent = 'Sent — check your inbox shortly.';
+    confirmEl.style.display = 'block';
+    emailInput.value = '';
+  } catch (err) {
+    console.error('[max-purchase-price] lead webhook failed:', err);
+    confirmEl.textContent = 'Something went wrong — try again in a moment.';
+    confirmEl.classList.add('error');
+    confirmEl.style.display = 'block';
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Email Me This';
+  }
+}
+</script>
+
+</body>
+</html>

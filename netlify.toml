@@ -1,0 +1,18 @@
+[build]
+  publish = "."
+
+# These are embeddable widgets, not destination pages — never index them,
+# and always allow framing (opposite of the locked-down internal portals).
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Robots-Tag = "noindex, nofollow"
+    X-Frame-Options = "ALLOWALL"
+    Content-Security-Policy = "frame-ancestors *"
+
+# Never cache HTML — a widget embedded sitewide via iframe must always serve
+# the latest deploy, not a stale cached copy from a visitor's first pageview.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
