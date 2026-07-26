@@ -107,18 +107,28 @@ function buildConsumerEmail(data) {
 </body></html>`;
 }
 
-export default async (req) => {
+// Netlify's submission-created trigger is documented against the classic
+// Lambda-compatible handler (event.body as a JSON string), not the newer
+// fetch-style `export default (req) => {}` signature. Using the wrong
+// signature here previously meant this function silently never reached the
+// Resend call at all — no error, no send, nothing in Resend's own history.
+exports.handler = async (event) => {
+  console.log('[submission-created] invoked, raw body:', event.body);
+
   let payload;
   try {
-    const body = await req.json();
-    payload = body.payload;
-  } catch {
-    return new Response('Invalid payload', { status: 400 });
+    const parsed = JSON.parse(event.body);
+    payload = parsed.payload ?? parsed;
+  } catch (err) {
+    console.error('[submission-created] failed to parse event.body:', err.message);
+    return { statusCode: 400, body: 'Invalid payload' };
   }
 
   const data = payload?.data ?? {};
   const formName = payload?.form_name ?? 'unknown';
   const createdAt = new Date(payload?.created_at ?? Date.now()).toLocaleString('en-US', { timeZone: 'America/New_York' });
+
+  console.log('[submission-created] parsed data:', JSON.stringify(data));
 
   const sends = [
     sendResendEmail({ to: TEAM_EMAIL, subject: 'New Steward Tool Lead', html: buildTeamEmail(data, formName, createdAt) }),
@@ -132,10 +142,12 @@ export default async (req) => {
   results.forEach((r, i) => {
     if (r.status === 'rejected') {
       console.error(`[submission-created] send ${i === 0 ? 'team' : 'consumer'} failed:`, r.reason?.message ?? r.reason);
+    } else {
+      console.log(`[submission-created] send ${i === 0 ? 'team' : 'consumer'} succeeded`);
     }
   });
 
   // Netlify doesn't act on the response, but return 200 so this doesn't show
   // up as a failed invocation in the function logs.
-  return new Response('ok', { status: 200 });
+  return { statusCode: 200, body: 'ok' };
 };
