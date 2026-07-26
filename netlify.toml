@@ -1,6 +1,10 @@
 [build]
   publish = "."
 
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
 # These are embeddable widgets, not destination pages — never index them,
 # and always allow framing (opposite of the locked-down internal portals).
 [[headers]]
