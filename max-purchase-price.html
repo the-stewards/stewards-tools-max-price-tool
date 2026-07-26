@@ -468,11 +468,23 @@
     <h2 class="cta-head">Want This <span>Number, Verified?</span></h2>
     <p class="cta-copy">A calculator gives you an estimate. A Steward gives you an actual number, backed by real underwriting — usually within a day.</p>
 
-    <div class="email-row">
-      <input type="text" id="emailInput" class="no-prefix" placeholder="you@email.com">
-      <button class="email-btn" id="emailBtn" onclick="emailResult()">Email Me This</button>
-    </div>
-    <p class="confirm" id="emailConfirm">Sent — check your inbox shortly.</p>
+    <form name="lead-capture" id="leadForm" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return emailResult(event)">
+      <input type="hidden" name="form-name" value="lead-capture">
+      <p style="position:absolute; left:-9999px;"><label>Don't fill this out: <input name="bot-field"></label></p>
+      <input type="hidden" name="mode" id="fieldMode">
+      <input type="hidden" name="estimated_price" id="fieldPrice">
+      <input type="hidden" name="monthly_pi" id="fieldPI">
+      <input type="hidden" name="monthly_tax" id="fieldTax">
+      <input type="hidden" name="monthly_insurance" id="fieldInsurance">
+      <input type="hidden" name="monthly_pmi" id="fieldPMI">
+      <input type="hidden" name="total_monthly_payment" id="fieldTotal">
+      <input type="hidden" name="page_url" id="fieldPageUrl">
+      <div class="email-row">
+        <input type="text" name="email" id="emailInput" class="no-prefix" placeholder="you@email.com" required>
+        <button type="submit" class="email-btn" id="emailBtn">Email Me This</button>
+      </div>
+      <p class="confirm" id="emailConfirm">Sent — check your inbox shortly.</p>
+    </form>
 
     <p class="divider-word">Or</p>
 
@@ -491,11 +503,6 @@ let currentMode = 'payment';
 const propertyTaxRate = 0.0125 / 12; // 1.25%/yr of purchase price
 const monthlyInsurance = 120; // flat estimate
 const pmiRate = 0.0055 / 12; // ~0.55%/yr of loan amount, standard conventional PMI estimate under 20% down
-
-// Lead capture destination — Zapier Catch Hook. The hook holds ZAPIER_WEBHOOK_SECRET
-// and forwards to stewards-ledger's /api/lead-intake server-side; the browser never
-// sees that secret. Set this to the real Catch Hook URL before going live.
-const LEAD_WEBHOOK_URL = 'REPLACE_WITH_ZAPIER_CATCH_HOOK_URL';
 
 // Live comma-formatting on currency fields — forgiving, readable while typing
 const currencyFieldIds = ['income', 'debts', 'downpayment', 'downpaymentP', 'idealPayment'];
@@ -673,7 +680,10 @@ if (window.ResizeObserver) {
   window.addEventListener('resize', reportHeight);
 }
 
-async function emailResult() {
+async function emailResult(event) {
+  event.preventDefault();
+
+  const form = document.getElementById('leadForm');
   const emailInput = document.getElementById('emailInput');
   const confirmEl = document.getElementById('emailConfirm');
   const btn = document.getElementById('emailBtn');
@@ -683,45 +693,38 @@ async function emailResult() {
 
   if (!email || !email.includes('@')) {
     alert('Enter a valid email address.');
-    return;
+    return false;
   }
   if (!lastResult) {
     alert('Calculate your estimate first.');
-    return;
+    return false;
   }
-  if (LEAD_WEBHOOK_URL.startsWith('REPLACE_WITH')) {
-    console.warn('[max-purchase-price] LEAD_WEBHOOK_URL not configured — lead not sent.', { email, ...lastResult });
-    confirmEl.textContent = 'Almost there — capture isn’t wired up yet.';
-    confirmEl.classList.add('error');
-    confirmEl.style.display = 'block';
-    return;
-  }
+
+  // Netlify Forms notification is the entire pipeline here — no Ledger write,
+  // no Zap, no stored lead record of our own. Just an email to the team inbox.
+  document.getElementById('fieldMode').value = lastResult.mode;
+  document.getElementById('fieldPrice').value = lastResult.price;
+  document.getElementById('fieldPI').value = lastResult.monthly_pi;
+  document.getElementById('fieldTax').value = lastResult.monthly_tax;
+  document.getElementById('fieldInsurance').value = lastResult.monthly_insurance;
+  document.getElementById('fieldPMI').value = lastResult.monthly_pmi;
+  document.getElementById('fieldTotal').value = lastResult.total_monthly_payment;
+  document.getElementById('fieldPageUrl').value = (window.parent !== window && document.referrer) ? document.referrer : window.location.href;
 
   btn.disabled = true;
   btn.textContent = 'Sending...';
 
   try {
-    await fetch(LEAD_WEBHOOK_URL, {
+    await fetch('/', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // agent_name is deliberately a non-matching sentinel — this is a blog-tool
-        // lead with no agent attribution, so it should land in the unmatched/leads
-        // queue for manual triage rather than auto-assigning to one person's pipeline.
-        agent_name: 'Stewards Web',
-        borrower_name: email,
-        source_form: 'max-purchase-price-widget',
-        borrower_email: email,
-        timestamp: new Date().toISOString(),
-        result: lastResult,
-        page_url: (window.parent !== window && document.referrer) ? document.referrer : window.location.href,
-      }),
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams(new FormData(form)).toString(),
     });
     confirmEl.textContent = 'Sent — check your inbox shortly.';
     confirmEl.style.display = 'block';
     emailInput.value = '';
   } catch (err) {
-    console.error('[max-purchase-price] lead webhook failed:', err);
+    console.error('[max-purchase-price] form submit failed:', err);
     confirmEl.textContent = 'Something went wrong — try again in a moment.';
     confirmEl.classList.add('error');
     confirmEl.style.display = 'block';
@@ -729,6 +732,7 @@ async function emailResult() {
     btn.disabled = false;
     btn.textContent = 'Email Me This';
   }
+  return false;
 }
 </script>
 
