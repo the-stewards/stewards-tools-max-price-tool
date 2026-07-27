@@ -270,8 +270,6 @@
     line-height: 1.75;
     margin-top: 32px;
   }
-  /* Netlify build-time form detection only — never shown, never submitted directly */
-  #netlify-detect { display: none; }
 
   .btn-grid {
     display: grid;
@@ -414,6 +412,24 @@
       <div style="display:none;">
         <label>Don't fill this out: <input name="company"></label>
       </div>
+      <!-- Result fields must be static hidden inputs, not dynamically appended
+           at submit time — Netlify's build-time form-detection bot only scans
+           what's actually present in the deployed HTML. Fields added via
+           appendChild() never register in the form's schema and get silently
+           dropped from the stored submission, even though the AJAX POST looks
+           like it succeeds. Populated via .value in handleSubmit(). -->
+      <input type="hidden" name="result_resultNumber" id="fieldResultNumber">
+      <input type="hidden" name="result_resultSub" id="fieldResultSub">
+      <input type="hidden" name="result_newPayment" id="fieldNewPayment">
+      <input type="hidden" name="result_paymentChange" id="fieldPaymentChange">
+      <input type="hidden" name="result_breakEven" id="fieldBreakEven">
+      <input type="hidden" name="result_totalCostCurrent" id="fieldTotalCostCurrent">
+      <input type="hidden" name="result_totalCostNew" id="fieldTotalCostNew">
+      <input type="hidden" name="result_remainingCurrent" id="fieldRemainingCurrent">
+      <input type="hidden" name="result_remainingNew" id="fieldRemainingNew">
+      <input type="hidden" name="result_cashOut" id="fieldCashOut">
+      <input type="hidden" name="result_yearsStay" id="fieldYearsStay">
+      <input type="hidden" name="result_goal" id="fieldGoal">
       <div class="email-row">
         <input type="text" id="emailInput" name="email" class="no-prefix" placeholder="you@email.com" required>
         <button type="submit" class="email-btn">Email Me This</button>
@@ -428,12 +444,6 @@
   </p>
 
 </div>
-
-<!-- Netlify build-time form detection — must exist as static markup somewhere in the deployed HTML for Netlify's build bot to register the form. Never displayed, never submitted directly. -->
-<form name="refi-lead" data-netlify="true" netlify-honeypot="company" hidden id="netlify-detect">
-  <input type="text" name="email">
-  <input type="text" name="company">
-</form>
 
 <script>
 const currencyFieldIds = ['currentBalance', 'currentPayment', 'closingCosts', 'cashOut', 'homeValue'];
