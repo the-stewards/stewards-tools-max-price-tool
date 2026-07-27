@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Should You Refinance? | The Stewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: #fffae8;
+    font-family: 'Frank Ruhl Libre', serif;
+    color: #555;
+  }
+  .wrap {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 40px 24px 60px 24px;
+  }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: clamp(32px, 7vw, 48px);
+    line-height: 1.05;
+    letter-spacing: -0.01em;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin: 0 0 16px 0;
+  }
+  h1 span { color: #f76732; }
+  hr.primary {
+    border: none;
+    border-top: 2px solid #f76732;
+    width: 60px;
+    margin: 0 0 20px 0;
+  }
+  .deck {
+    font-size: 18px;
+    font-weight: 300;
+    line-height: 1.75;
+    color: #555;
+    margin: 0 0 32px 0;
+    max-width: 520px;
+  }
+  .field { margin-bottom: 20px; }
+  label {
+    display: block;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin-bottom: 4px;
+  }
+  .hint {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 15px;
+    color: #999;
+    margin: 0 0 10px 0;
+  }
+  .input-row { position: relative; }
+  .prefix {
+    position: absolute;
+    left: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 18px;
+    color: #888;
+    pointer-events: none;
+  }
+  input[type=text], select {
+    width: 100%;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: #403d3d;
+    background: #ffffff;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 16px 16px;
+    padding-left: 30px;
+    outline: none;
+    min-height: 56px;
+  }
+  input.no-prefix { padding-left: 16px; }
+  input:focus, select:focus { border-color: #f76732; }
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
+
+  .estimate-link {
+    background: none;
+    border: none;
+    padding: 0;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #403d3d;
+    text-decoration: underline;
+    cursor: pointer;
+    margin-top: -6px;
+    margin-bottom: 10px;
+    display: inline-block;
+  }
+
+  .calc-btn {
+    width: 100%;
+    background: #403d3d;
+    color: #fffae8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 22px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 22px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    margin-top: 12px;
+    min-height: 64px;
+  }
+  .calc-btn:hover { background: #2f2d2d; }
+
+  .result-block {
+    display: none;
+    margin-top: 40px;
+    background: #403d3d;
+    border-left: 4px solid #f76732;
+    border-radius: 0 3px 3px 0;
+    padding: 36px 32px;
+    text-align: center;
+  }
+  .result-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: #f76732;
+    margin: 0 0 10px 0;
+  }
+  .result-number {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 48px;
+    color: #f76732;
+    margin: 0 0 16px 0;
+    line-height: 1.1;
+  }
+  .result-sub {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 16px;
+    color: rgba(255,250,232,0.7);
+    line-height: 1.75;
+    margin: 0;
+  }
+  .breakdown {
+    margin-top: 24px;
+    text-align: left;
+    border-top: 1px solid rgba(255,250,232,0.2);
+    padding-top: 20px;
+  }
+  .breakdown-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    font-family: 'Frank Ruhl Libre', serif;
+    font-size: 16px;
+    color: rgba(255,250,232,0.85);
+    padding: 6px 0;
+  }
+  .breakdown-row .val {
+    font-weight: 500;
+    color: #fffae8;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .cta-block {
+    display: none;
+    margin-top: 24px;
+    background: #fffae8;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 32px;
+    text-align: center;
+  }
+  .cta-label {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: #f76732;
+    margin: 0 0 10px 0;
+  }
+  .cta-head {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 26px;
+    text-transform: uppercase;
+    color: #403d3d;
+    margin: 0 0 14px 0;
+    line-height: 1.15;
+  }
+  .cta-head span { color: #f76732; }
+  .cta-copy {
+    font-size: 16px;
+    font-weight: 300;
+    line-height: 1.7;
+    color: #555;
+    margin: 0 0 24px 0;
+  }
+  .email-row {
+    display: flex;
+    gap: 12px;
+    max-width: 440px;
+    margin: 0 auto;
+  }
+  @media (max-width: 480px) { .email-row { flex-direction: column; } }
+  .email-row input { flex: 1; padding-left: 16px; }
+  .email-btn {
+    background: #f76732;
+    color: #fffae8;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0 24px;
+    border: none;
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+    min-height: 56px;
+  }
+  .confirm {
+    display: none;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    color: #403d3d;
+    letter-spacing: 0.05em;
+    margin-top: 12px;
+  }
+  .micro {
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #888;
+    margin: 14px 0 0 0;
+  }
+  .legal {
+    font-family: 'Frank Ruhl Libre', serif;
+    font-weight: 300;
+    font-size: 16px;
+    color: #999;
+    line-height: 1.75;
+    margin-top: 32px;
+  }
+  /* Netlify build-time form detection only — never shown, never submitted directly */
+  #netlify-detect { display: none; }
+
+  .btn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .choice-btn {
+    background: #dddddd;
+    border: 1px solid #dddddd;
+    border-radius: 3px;
+    padding: 20px 14px;
+    min-height: 64px;
+    cursor: pointer;
+    font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700;
+    font-size: 16px;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+    color: #666;
+    text-align: center;
+  }
+  .choice-btn.active {
+    background: #f76732;
+    border-color: #f76732;
+    color: #fffae8;
+  }
+  .term-grid { grid-template-columns: 1fr 1fr; max-width: 100%; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Should You <span>Refinance?</span></h1>
+  <hr class="primary">
+  <p class="deck">Enter your numbers. We'll give it to you straight.</p>
+
+  <label>What's Your Goal?</label>
+  <div class="btn-grid" id="goalGrid">
+    <div class="choice-btn active" data-goal="lower_payment" onclick="setGoal('lower_payment')">Lower My<br>Payment</div>
+    <div class="choice-btn" data-goal="lower_rate" onclick="setGoal('lower_rate')">Lower My<br>Rate</div>
+    <div class="choice-btn" data-goal="payoff_faster" onclick="setGoal('payoff_faster')">Pay Off<br>Faster</div>
+    <div class="choice-btn" data-goal="cash_out" onclick="setGoal('cash_out')">Take Cash<br>Out</div>
+  </div>
+
+  <div class="field" id="cashOutField" style="display:none;">
+    <label for="cashOut">Cash You Want To Take Out</label>
+    <div class="input-row">
+      <span class="prefix">$</span>
+      <input type="text" inputmode="numeric" id="cashOut" placeholder="20,000">
+    </div>
+  </div>
+
+  <div class="field" id="homeValueField" style="display:none;">
+    <label for="homeValue">Current Home Value</label>
+    <p class="hint">Your best estimate — checks if you'll owe mortgage insurance.</p>
+    <div class="input-row">
+      <span class="prefix">$</span>
+      <input type="text" inputmode="numeric" id="homeValue" placeholder="380,000">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="currentBalance">Current Loan Balance</label>
+    <div class="input-row">
+      <span class="prefix">$</span>
+      <input type="text" inputmode="numeric" id="currentBalance" placeholder="285,000" onblur="autofillClosingCosts()">
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="field">
+      <label for="currentRate">Current Rate</label>
+      <div class="input-row">
+        <input type="text" inputmode="decimal" id="currentRate" class="no-prefix" placeholder="7.25" style="padding-right:30px;">
+        <span class="prefix" style="left:auto; right:14px;">%</span>
+      </div>
+    </div>
+    <div class="field">
+      <label for="currentPayment">Current Payment</label>
+      <div class="input-row">
+        <span class="prefix">$</span>
+        <input type="text" inputmode="numeric" id="currentPayment" placeholder="1,950">
+      </div>
+    </div>
+  </div>
+  <p class="hint" style="margin-top:-12px;">Payment = principal & interest only.</p>
+
+  <div class="field">
+    <label for="newRate">New Estimated Rate</label>
+    <div class="input-row">
+      <input type="text" inputmode="decimal" id="newRate" class="no-prefix" placeholder="6.25" style="padding-right:30px;">
+      <span class="prefix" style="left:auto; right:14px;">%</span>
+    </div>
+  </div>
+
+  <label>New Loan Term</label>
+  <div class="btn-grid term-grid" id="termGrid">
+    <div class="choice-btn active" data-term="30" onclick="setTerm('30')">30-Year<br>Fixed</div>
+    <div class="choice-btn" data-term="15" onclick="setTerm('15')">15-Year<br>Fixed</div>
+  </div>
+
+  <div class="field">
+    <label for="closingCosts">Est. Closing Costs</label>
+    <p class="hint">We filled in the national average — edit it if you know your real number.</p>
+    <div class="input-row">
+      <span class="prefix">$</span>
+      <input type="text" inputmode="numeric" id="closingCosts" placeholder="7,000">
+    </div>
+  </div>
+
+  <div class="field">
+    <label for="yearsStay">How Long Will You Stay Here?</label>
+    <p class="hint">Your best guess is fine.</p>
+    <div class="input-row">
+      <input type="text" inputmode="numeric" id="yearsStay" class="no-prefix" placeholder="7" style="padding-right:16px;">
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="calculate()">See If It's Worth It</button>
+
+  <div class="result-block" id="resultBlock">
+    <p id="rateWarning" style="display:none; font-family:'Frank Ruhl Libre',serif; font-weight:300; font-size:15px; color:rgba(255,250,232,0.85); line-height:1.6; margin:0 0 20px 0; padding:14px 16px; background:rgba(0,0,0,0.15); border-left:3px solid #f76732; text-align:left;"></p>
+    <p class="result-label" id="resultLabel">Estimated Result</p>
+    <p class="result-number" id="resultNumber">$0</p>
+    <p class="result-sub" id="resultSub"></p>
+    <p style="font-family:'Frank Ruhl Libre',serif; font-weight:300; font-size:15px; color:rgba(255,250,232,0.5); margin:8px 0 0 0;">Not an offer of credit or specific loan terms — based only on what you entered.</p>
+    <button type="button" id="detailsToggle" onclick="toggleDetails()" style="background:none; border:none; color:rgba(255,250,232,0.6); font-family:'Barlow Condensed',sans-serif; font-weight:700; font-size:16px; letter-spacing:0.1em; text-transform:uppercase; cursor:pointer; margin-top:16px; padding:8px; text-decoration:underline;">See The Math &darr;</button>
+    <div class="breakdown" id="breakdown" style="display:none;"></div>
+  </div>
+
+  <div class="cta-block" id="ctaBlock">
+    <p class="cta-label">Want This In Writing?</p>
+    <h2 class="cta-head">We'll Email You <span>The Full Breakdown</span></h2>
+    <p class="cta-copy">Every number above, plus what a Steward would actually recommend based on it.</p>
+
+    <form id="refiForm" name="refi-lead" data-netlify="true" netlify-honeypot="company" onsubmit="return handleSubmit(event)">
+      <input type="hidden" name="form-name" value="refi-lead">
+      <div style="display:none;">
+        <label>Don't fill this out: <input name="company"></label>
+      </div>
+      <div class="email-row">
+        <input type="text" id="emailInput" name="email" class="no-prefix" placeholder="you@email.com" required>
+        <button type="submit" class="email-btn">Email Me This</button>
+      </div>
+    </form>
+    <p class="confirm" id="emailConfirm">Sent — check your inbox shortly.</p>
+    <p class="micro">No cost. No obligation.</p>
+  </div>
+
+  <p class="legal">
+    This calculator provides a general estimate based only on the figures you entered and does not constitute a loan approval, pre-qualification, offer of credit, or commitment to lend. It does not represent specific loan terms available to you or advertised by Ruoff Mortgage. Actual results depend on credit history, exact closing costs, escrow requirements, and full underwriting review. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.
+  </p>
+
+</div>
+
+<!-- Netlify build-time form detection — must exist as static markup somewhere in the deployed HTML for Netlify's build bot to register the form. Never displayed, never submitted directly. -->
+<form name="refi-lead" data-netlify="true" netlify-honeypot="company" hidden id="netlify-detect">
+  <input type="text" name="email">
+  <input type="text" name="company">
+</form>
+
+<script>
+const currencyFieldIds = ['currentBalance', 'currentPayment', 'closingCosts', 'cashOut', 'homeValue'];
+currencyFieldIds.forEach(function(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', function() {
+    const raw = el.value.replace(/[^0-9]/g, '');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('en-US') : '';
+  });
+});
+
+function parseNum(id) {
+  const v = document.getElementById(id).value.replace(/[^0-9.]/g, '');
+  return parseFloat(v) || 0;
+}
+
+function formatCurrency(n) {
+  const sign = n < 0 ? '-' : '';
+  return sign + '$' + Math.round(Math.abs(n)).toLocaleString('en-US');
+}
+
+let currentGoal = 'lower_payment';
+let currentTerm = '30';
+
+function setGoal(goal) {
+  currentGoal = goal;
+  document.querySelectorAll('#goalGrid .choice-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.goal === goal);
+  });
+  const showCashOut = goal === 'cash_out';
+  document.getElementById('cashOutField').style.display = showCashOut ? 'block' : 'none';
+  document.getElementById('homeValueField').style.display = showCashOut ? 'block' : 'none';
+}
+
+function setTerm(term) {
+  currentTerm = term;
+  document.querySelectorAll('#termGrid .choice-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.term === term);
+  });
+}
+
+function autofillClosingCosts() {
+  const closingField = document.getElementById('closingCosts');
+  if (closingField.value.trim() !== '') return; // don't overwrite what they've already typed
+  const balance = parseNum('currentBalance');
+  if (balance <= 0) return;
+  closingField.value = Math.round(balance * 0.025).toLocaleString('en-US');
+}
+
+function calcPI(principal, monthlyRate, n) {
+  return monthlyRate > 0
+    ? principal * (monthlyRate * Math.pow(1 + monthlyRate, n)) / (Math.pow(1 + monthlyRate, n) - 1)
+    : principal / n;
+}
+
+// Projects a loan's remaining balance k months forward, given only its
+// current balance, rate, and payment — does not require knowing the
+// original term. Standard amortization projection formula.
+function remainingBalance(principal, monthlyRate, payment, k) {
+  let balance;
+  if (monthlyRate > 0) {
+    balance = principal * Math.pow(1 + monthlyRate, k) - payment * ((Math.pow(1 + monthlyRate, k) - 1) / monthlyRate);
+  } else {
+    balance = principal - (payment * k);
+  }
+  return Math.max(balance, 0);
+}
+
+const pmiRate = 0.0055 / 12; // ~0.55%/yr of loan amount, standard conventional estimate over 80% LTV
+
+function calculate() {
+  const currentBalance = parseNum('currentBalance');
+  const currentRate = parseNum('currentRate');
+  const currentPayment = parseNum('currentPayment');
+  const newRate = parseNum('newRate');
+  const newTermYears = parseInt(currentTerm);
+  const closingCosts = parseNum('closingCosts');
+  const goal = currentGoal;
+  const cashOut = goal === 'cash_out' ? parseNum('cashOut') : 0;
+  const homeValue = goal === 'cash_out' ? parseNum('homeValue') : 0;
+  const yearsStay = parseNum('yearsStay');
+
+  if (currentBalance <= 0 || currentPayment <= 0 || newRate <= 0 || yearsStay <= 0) {
+    alert('Fill in your loan balance, current payment, new rate, and how long you\'ll stay to calculate.');
+    return;
+  }
+
+  // Soft sanity warning — doesn't block, just sets expectations
+  const rateWarning = document.getElementById('rateWarning');
+  if (newRate >= currentRate && currentRate > 0) {
+    rateWarning.style.display = 'block';
+    rateWarning.textContent = "Heads up — your new rate isn't lower than your current rate. Refinancing can still make sense for cash out or changing your term, but it won't lower your rate.";
+  } else {
+    rateWarning.style.display = 'none';
+  }
+
+  const newBalance = currentBalance + cashOut;
+  const newRateMonthly = newRate / 100 / 12;
+  const currentRateMonthly = currentRate / 100 / 12;
+  const newTermMonths = newTermYears * 12;
+  const newPayment = calcPI(newBalance, newRateMonthly, newTermMonths);
+
+  // PMI — only modeled for the cash-out scenario, only if a home value was given
+  let monthlyPMI = 0;
+  let newLTV = null;
+  if (goal === 'cash_out' && homeValue > 0) {
+    newLTV = newBalance / homeValue;
+    if (newLTV > 0.80) {
+      monthlyPMI = newBalance * pmiRate;
+    }
+  }
+
+  const monthsStaying = yearsStay * 12;
+
+  // Cash paid over the horizon
+  const cashPaidCurrent = currentPayment * monthsStaying;
+  const cashPaidNew = closingCosts + ((newPayment + monthlyPMI) * monthsStaying);
+
+  // Remaining balance owed at the end of the horizon — this is what actually
+  // captures the amortization-reset problem: a shorter/faster-paying loan
+  // will show a lower remaining balance here even if its payment is higher.
+  const remainingCurrent = remainingBalance(currentBalance, currentRateMonthly, currentPayment, monthsStaying);
+  const remainingNew = remainingBalance(newBalance, newRateMonthly, newPayment, monthsStaying);
+
+  // Net cost = cash paid + debt still owed - cash received (cash-out is proceeds, not cost)
+  const netCostCurrent = cashPaidCurrent + remainingCurrent;
+  const netCostNew = cashPaidNew + remainingNew - cashOut;
+  const netResult = netCostCurrent - netCostNew; // positive = refi is the better deal overall
+  const paymentChange = newPayment - currentPayment;
+
+  let breakEvenMonths = null;
+  if (newPayment + monthlyPMI < currentPayment) {
+    const monthlySavings = currentPayment - (newPayment + monthlyPMI);
+    breakEvenMonths = closingCosts / monthlySavings;
+  }
+
+  // Headline + subtext
+  const resultNumber = document.getElementById('resultNumber');
+  const resultSub = document.getElementById('resultSub');
+
+  if (netResult > 0) {
+    resultNumber.textContent = formatCurrency(netResult) + ' Better Off';
+    resultSub.textContent = 'Counting both what you\'d pay and what you\'d still owe after ' + yearsStay + ' years, refinancing comes out ahead.';
+  } else {
+    resultNumber.textContent = formatCurrency(Math.abs(netResult)) + ' Worse Off';
+    resultSub.textContent = 'Counting both what you\'d pay and what you\'d still owe after ' + yearsStay + ' years, staying put comes out ahead.';
+  }
+
+  if (goal === 'cash_out' && cashOut > 0) {
+    resultSub.textContent += ' This also gets you ' + formatCurrency(cashOut) + ' cash at closing.';
+  }
+
+  const breakEvenText = breakEvenMonths !== null
+    ? Math.round(breakEvenMonths) + ' months (~' + (breakEvenMonths / 12).toFixed(1) + ' yrs)'
+    : 'Not applicable — payment doesn\'t decrease';
+
+  const pmiRow = monthlyPMI > 0
+    ? `<div class="breakdown-row"><span>Est. Monthly PMI <span style="opacity:0.6;">(LTV over 80%)</span></span><span class="val">${formatCurrency(monthlyPMI)}</span></div>`
+    : '';
+
+  const cashOutRow = (goal === 'cash_out' && cashOut > 0)
+    ? `<div class="breakdown-row"><span>Cash You'll Receive At Closing</span><span class="val">${formatCurrency(cashOut)}</span></div>`
+    : '';
+
+  document.getElementById('breakdown').innerHTML = `
+    <div class="breakdown-row"><span>New Estimated Payment</span><span class="val">${formatCurrency(newPayment)}</span></div>
+    ${pmiRow}
+    <div class="breakdown-row"><span>Monthly Payment Change</span><span class="val">${paymentChange >= 0 ? '+' : ''}${formatCurrency(paymentChange)}</span></div>
+    <div class="breakdown-row"><span>Break-Even On Closing Costs</span><span class="val">${breakEvenText}</span></div>
+    <div class="breakdown-row"><span>Cash Paid, Staying Put (${yearsStay} yrs)</span><span class="val">${formatCurrency(cashPaidCurrent)}</span></div>
+    <div class="breakdown-row"><span>Cash Paid, After Refinancing (${yearsStay} yrs)</span><span class="val">${formatCurrency(cashPaidNew)}</span></div>
+    <div class="breakdown-row"><span>Still Owed, Staying Put</span><span class="val">${formatCurrency(remainingCurrent)}</span></div>
+    <div class="breakdown-row"><span>Still Owed, After Refinancing</span><span class="val">${formatCurrency(remainingNew)}</span></div>
+    ${cashOutRow}
+  `;
+
+  document.getElementById('resultBlock').style.display = 'block';
+  document.getElementById('ctaBlock').style.display = 'block';
+  document.getElementById('resultBlock').scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+  window.__lastRefiResult = {
+    resultNumber: resultNumber.textContent,
+    resultSub: resultSub.textContent,
+    newPayment: formatCurrency(newPayment),
+    paymentChange: (paymentChange >= 0 ? '+' : '') + formatCurrency(paymentChange),
+    breakEven: breakEvenText,
+    totalCostCurrent: formatCurrency(cashPaidCurrent),
+    totalCostNew: formatCurrency(cashPaidNew),
+    remainingCurrent: formatCurrency(remainingCurrent),
+    remainingNew: formatCurrency(remainingNew),
+    cashOut: cashOut > 0 ? formatCurrency(cashOut) : null,
+    yearsStay: yearsStay,
+    goal: goal
+  };
+}
+
+function toggleDetails() {
+  const breakdown = document.getElementById('breakdown');
+  const btn = document.getElementById('detailsToggle');
+  const showing = breakdown.style.display === 'block';
+  breakdown.style.display = showing ? 'none' : 'block';
+  btn.textContent = showing ? 'See The Math ↓' : 'Hide The Math ↑';
+}
+
+// Netlify AJAX form submission — no page reload, since this lives in an iframe.
+function encodeFormData(form) {
+  const data = new FormData(form);
+  return new URLSearchParams(data).toString();
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('refiForm');
+  const email = document.getElementById('emailInput').value.trim();
+
+  if (!email || !email.includes('@')) {
+    alert('Enter a valid email address.');
+    return false;
+  }
+
+  // Pass the calculated result along as extra form fields so the
+  // submission-created function has everything it needs for the consumer email.
+  const result = window.__lastRefiResult || {};
+  Object.keys(result).forEach(function(key) {
+    let input = form.querySelector('[name="result_' + key + '"]');
+    if (!input) {
+      input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = 'result_' + key;
+      form.appendChild(input);
+    }
+    input.value = result[key] || '';
+  });
+
+  fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encodeFormData(form)
+  })
+    .then(function() {
+      document.getElementById('emailConfirm').style.display = 'block';
+      form.style.display = 'none';
+    })
+    .catch(function(err) {
+      console.error('Form submission error:', err);
+      alert('Something went wrong sending that — try again in a moment.');
+    });
+
+  return false;
+}
+</script>
+
+</body>
+</html>
