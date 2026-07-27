@@ -394,6 +394,7 @@
 
   <div class="result-block" id="resultBlock">
     <p id="rateWarning" style="display:none; font-family:'Frank Ruhl Libre',serif; font-weight:300; font-size:15px; color:rgba(255,250,232,0.85); line-height:1.6; margin:0 0 20px 0; padding:14px 16px; background:rgba(0,0,0,0.15); border-left:3px solid #f76732; text-align:left;"></p>
+    <p id="sanityWarning" style="display:none; font-family:'Frank Ruhl Libre',serif; font-weight:300; font-size:15px; color:rgba(255,250,232,0.85); line-height:1.6; margin:0 0 20px 0; padding:14px 16px; background:rgba(0,0,0,0.15); border-left:3px solid #f76732; text-align:left;"></p>
     <p class="result-label" id="resultLabel">Estimated Result</p>
     <p class="result-number" id="resultNumber">$0</p>
     <p class="result-sub" id="resultSub"></p>
@@ -539,6 +540,21 @@ function calculate() {
     rateWarning.textContent = "Heads up — your new rate isn't lower than your current rate. Refinancing can still make sense for cash out or changing your term, but it won't lower your rate.";
   } else {
     rateWarning.style.display = 'none';
+  }
+
+  // Soft sanity warning for out-of-range values — catches obvious typos
+  // (a rate of 50%, a 200-year stay) without blocking real, unusual inputs.
+  // Same non-blocking pattern as the rate warning above.
+  const sanityWarning = document.getElementById('sanityWarning');
+  const sanityIssues = [];
+  if (yearsStay > 40) sanityIssues.push("that's a long time to plan for — double check the years you'll stay");
+  if (newRate > 20) sanityIssues.push("that new rate looks unusually high — double check it");
+  if (currentRate > 20) sanityIssues.push("your current rate looks unusually high — double check it");
+  if (sanityIssues.length) {
+    sanityWarning.style.display = 'block';
+    sanityWarning.textContent = 'Heads up — ' + sanityIssues.join('; and ') + '. The numbers below still reflect exactly what you entered.';
+  } else {
+    sanityWarning.style.display = 'none';
   }
 
   const newBalance = currentBalance + cashOut;
