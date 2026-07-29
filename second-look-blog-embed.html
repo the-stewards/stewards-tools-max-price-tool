@@ -1,0 +1,95 @@
+<!--
+  Second Look — blog post embed snippet
+  ----------------------------------------
+  This is what goes IN THE BLOG POST (pasted directly into BD's content
+  editor, or wherever the post body is authored) — NOT the tool itself.
+  The tool (second-look.html) is hosted separately and lives inside the
+  iframe below.
+
+  Uses native <details>/<summary> for the expand behavior — no JavaScript
+  at all, so it survives Brilliant Directories' script-stripping. The
+  <summary> IS the styled card + button; clicking it is a native browser
+  disclosure toggle, not something we had to wire up ourselves.
+
+  Height measured (not guessed): blank form 2346px, fully filled out
+  (right before submit) 2377px at 375px width — sized to 2450px with
+  margin, biased toward the ceiling since nobody sees the iframe until
+  they've already clicked to open it.
+-->
+
+<details style="margin: 24px 0; border: none;">
+  <summary style="
+    cursor: pointer;
+    list-style: none;
+    display: block;
+    background: #403d3d;
+    border-left: 4px solid #f76732;
+    border-radius: 0 4px 4px 0;
+    padding: 40px 32px;
+    text-align: center;
+  ">
+    <span style="
+      display: block;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #f76732;
+      margin-bottom: 14px;
+    ">Free Second Look</span>
+
+    <span style="
+      display: block;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: #fffae8;
+      margin-bottom: 14px;
+      line-height: 1.15;
+    ">Is Your Loan A Good Deal?</span>
+
+    <span style="
+      display: block;
+      font-family: Georgia, serif;
+      font-weight: 300;
+      font-size: 17px;
+      color: rgba(255,250,232,0.75);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    ">Upload your Loan Estimate. A Steward reviews it and tells you within 24 hours if we can beat it.</span>
+
+    <span style="
+      display: inline-block;
+      background: #f76732;
+      color: #fffae8;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 18px 32px;
+      border-radius: 2px;
+    ">Upload My Loan Estimate &rarr;</span>
+  </summary>
+
+  <iframe
+    src="https://stewards-tools-max-price-tool.netlify.app/second-look.html"
+    style="width:100%; border:none; display:block; height:2450px;"
+    scrolling="auto"
+    loading="lazy"
+    title="Second Look — Loan Estimate Review">
+  </iframe>
+</details>
+
+<!--
+  Note on styling: <summary> markers (the default triangle/arrow) are
+  removed via list-style:none above, which works in most modern browsers.
+  Safari needs an extra rule to fully hide its own disclosure triangle:
+
+  summary::-webkit-details-marker { display: none; }
+
+  Add that as a <style> block if Safari shows a stray triangle in testing.
+-->
