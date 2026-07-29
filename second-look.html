@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Second Look | The Stewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fffae8; font-family: 'Frank Ruhl Libre', serif; color: #555; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 60px 24px; }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: clamp(30px, 6.5vw, 44px); line-height: 1.05; letter-spacing: -0.01em;
+    text-transform: uppercase; color: #403d3d; margin: 0 0 16px 0;
+  }
+  h1 span { color: #f76732; }
+  hr.primary { border: none; border-top: 2px solid #f76732; width: 60px; margin: 0 0 20px 0; }
+  .deck { font-size: 18px; font-weight: 300; line-height: 1.75; color: #555; margin: 0 0 32px 0; max-width: 520px; }
+  .field { margin-bottom: 20px; }
+  label {
+    display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 18px; letter-spacing: 0.05em; text-transform: uppercase; color: #403d3d; margin-bottom: 4px;
+  }
+  .hint { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 15px; color: #999; margin: 0 0 10px 0; }
+  input[type=text], input[type=email], input[type=tel], input[type=date], select, textarea {
+    width: 100%; font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 400;
+    color: #403d3d; background: #ffffff; border: 1px solid #dddddd; border-radius: 3px;
+    padding: 16px; outline: none; min-height: 56px;
+  }
+  textarea { min-height: 100px; font-size: 16px; resize: vertical; }
+  input:focus, select:focus, textarea:focus { border-color: #f76732; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
+
+  .upload-box {
+    border: 2px dashed #dddddd; border-radius: 3px; padding: 32px 20px; text-align: center; background: #fff; margin-bottom: 8px;
+  }
+  .upload-btn {
+    display: inline-block; background: #403d3d; color: #fffae8; font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 18px; letter-spacing: 0.1em; text-transform: uppercase; padding: 14px 28px;
+    border-radius: 2px; cursor: pointer; min-height: 56px;
+  }
+  .file-name { font-family: 'Frank Ruhl Libre', serif; font-size: 15px; color: #403d3d; margin-top: 12px; }
+
+  .privacy-note {
+    font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 15px; color: #999;
+    line-height: 1.6; background: #fff; border-left: 3px solid #dddddd; padding: 14px 16px; margin-bottom: 24px;
+  }
+
+  .submit-btn {
+    width: 100%; background: #403d3d; color: #fffae8; font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 22px; letter-spacing: 0.15em; text-transform: uppercase; padding: 22px;
+    border: none; border-radius: 2px; cursor: pointer; margin-top: 12px; min-height: 64px;
+  }
+  .submit-btn:hover { background: #2f2d2d; }
+  .submit-btn:disabled { background: #999; cursor: not-allowed; }
+
+  .confirm-block {
+    display: none; margin-top: 20px; background: #403d3d; border-left: 4px solid #f76732;
+    border-radius: 0 3px 3px 0; padding: 36px 32px; text-align: center;
+  }
+  .confirm-label {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px;
+    letter-spacing: 0.4em; text-transform: uppercase; color: #f76732; margin: 0 0 10px 0;
+  }
+  .confirm-head {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px;
+    text-transform: uppercase; color: #fffae8; margin: 0 0 14px 0; line-height: 1.1;
+  }
+  .confirm-copy {
+    font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 16px;
+    color: rgba(255,250,232,0.8); line-height: 1.75; margin: 0;
+  }
+
+  .legal { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 16px; color: #999; line-height: 1.75; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Get A <span>Second Look</span></h1>
+  <hr class="primary">
+  <p class="deck">Already have a Loan Estimate from another lender? Upload it below. A Steward will review it and let you know within 24 hours if we can beat it.</p>
+
+  <form id="secondLookForm" name="second-look-lead" data-netlify="true" netlify-honeypot="company" enctype="multipart/form-data" onsubmit="return handleSubmit(event)">
+    <input type="hidden" name="form-name" value="second-look-lead">
+    <div style="display:none;"><label>Don't fill this out: <input name="company"></label></div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" name="firstName" required>
+      </div>
+      <div class="field">
+        <label for="lastName">Last Name</label>
+        <input type="text" id="lastName" name="lastName" required>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+      <div class="field">
+        <label for="phone">Mobile Phone</label>
+        <input type="tel" id="phone" name="phone" required>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="propertyState">Property State</label>
+        <select id="propertyState" name="propertyState" required>
+          <option value="">Select one</option>
+          <option>Alabama</option><option>Alaska</option><option>Arizona</option><option>Arkansas</option>
+          <option>California</option><option>Colorado</option><option>Connecticut</option><option>Delaware</option>
+          <option>District of Columbia</option><option>Florida</option><option>Georgia</option><option>Hawaii</option>
+          <option>Idaho</option><option>Illinois</option><option>Indiana</option><option>Iowa</option>
+          <option>Kansas</option><option>Kentucky</option><option>Louisiana</option><option>Maine</option>
+          <option>Maryland</option><option>Massachusetts</option><option>Michigan</option><option>Minnesota</option>
+          <option>Mississippi</option><option>Missouri</option><option>Montana</option><option>Nebraska</option>
+          <option>Nevada</option><option>New Hampshire</option><option>New Jersey</option><option>New Mexico</option>
+          <option>New York</option><option>North Carolina</option><option>North Dakota</option>
+          <option selected>Ohio</option><option>Oklahoma</option><option>Oregon</option><option>Pennsylvania</option>
+          <option>Rhode Island</option><option>South Carolina</option><option>South Dakota</option><option>Tennessee</option>
+          <option>Texas</option><option>Utah</option><option>Vermont</option><option>Virginia</option>
+          <option>Washington</option><option>West Virginia</option><option>Wisconsin</option><option>Wyoming</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="closingDate">Closing Date</label>
+        <input type="date" id="closingDate" name="closingDate" required>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="propertyType">Property Type</label>
+        <select id="propertyType" name="propertyType" required>
+          <option value="">Select one</option>
+          <option>Single Family</option>
+          <option>Condo</option>
+          <option>Multi Unit</option>
+          <option>Manufactured</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="propertyUsage">Property Usage</label>
+        <select id="propertyUsage" name="propertyUsage" required>
+          <option value="">Select one</option>
+          <option>Primary Residence</option>
+          <option>Second Home</option>
+          <option>Investment</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="creditScore">Credit Score</label>
+      <p class="hint">Optional — your best estimate is fine.</p>
+      <input type="text" inputmode="numeric" id="creditScore" name="creditScore">
+    </div>
+
+    <div class="field">
+      <label>Loan Estimate</label>
+      <p class="hint">Upload the PDF you received from your lender. No PDF? A clear photo of the first page works too.</p>
+      <div class="privacy-note">Your information and document go directly to a Steward for review — not shared beyond that.</div>
+      <div class="upload-box">
+        <input type="file" id="fileInput" name="loanEstimate" accept="application/pdf,image/*" style="display:none;" onchange="handleFileSelect()" required>
+        <button type="button" class="upload-btn" onclick="document.getElementById('fileInput').click()">Choose File</button>
+        <p class="file-name" id="fileName"></p>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="notes">Notes</label>
+      <p class="hint">Optional — anything else we should know?</p>
+      <textarea id="notes" name="notes"></textarea>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Submit For Review</button>
+  </form>
+
+  <div class="confirm-block" id="confirmBlock">
+    <p class="confirm-label">Got It</p>
+    <h2 class="confirm-head">We're On It</h2>
+    <p class="confirm-copy">A Steward is reviewing your Loan Estimate now. Expect to hear back within 24 hours — usually sooner.</p>
+  </div>
+
+  <p class="legal">
+    This is a request for a manual review by a licensed loan officer, not an automated quote, loan approval, pre-qualification, offer of credit, or commitment to lend. Submitting this form does not guarantee we can beat your current offer. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.
+  </p>
+
+</div>
+
+<script>
+function handleFileSelect() {
+  const file = document.getElementById('fileInput').files[0];
+  if (!file) return;
+  const validTypes = ['application/pdf', 'image/jpeg', 'image/png', 'image/heic'];
+  if (!validTypes.some(t => file.type === t) && !file.type.startsWith('image/')) {
+    alert('Please upload a PDF or a photo of your Loan Estimate.');
+    document.getElementById('fileInput').value = '';
+    return;
+  }
+  if (file.size > 15 * 1024 * 1024) {
+    alert('That file is too large — please upload something under 15MB.');
+    document.getElementById('fileInput').value = '';
+    return;
+  }
+  document.getElementById('fileName').textContent = file.name;
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('secondLookForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  if (!document.getElementById('fileInput').files.length) {
+    alert('Please upload your Loan Estimate before submitting.');
+    return false;
+  }
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Submitting…';
+
+  const formData = new FormData(form); // multipart — carries the file correctly, unlike URLSearchParams
+
+  fetch('/', {
+    method: 'POST',
+    body: formData
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Submission failed');
+      form.style.display = 'none';
+      document.getElementById('confirmBlock').style.display = 'block';
+      document.getElementById('confirmBlock').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })
+    .catch(function(err) {
+      console.error('Form submission error:', err);
+      alert('Something went wrong submitting that — try again in a moment.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Submit For Review';
+    });
+
+  return false;
+}
+</script>
+
+</body>
+</html>

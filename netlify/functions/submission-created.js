@@ -1,15 +1,77 @@
-// Fires on EVERY Netlify Forms submission for this whole site — Netlify's
-// submission-created auto-invocation is site-wide by exact filename, not
-// per-form. A function named anything else (e.g. refi-lead-notify.js) will
-// never be triggered by a real form submission, only by calling its URL
-// directly. Discovered the hard way building the refi tool: the direct-curl
-// test to refi-lead-notify worked, but a real form submit on that page was
-// actually processed by THIS function instead, sending the wrong (max-
-// purchase-price) template. Every form's email logic must live here,
-// dispatched by payload.form_name.
+// netlify/functions/submission-created.js
+//
+// THIS FILE MUST BE NAMED EXACTLY submission-created.js AND LIVE AT
+// netlify/functions/submission-created.js — Netlify only auto-invokes a
+// function with this EXACT name on every form submission, for every form
+// on the site. A custom-named function (e.g. "refi-lead-notify.js") will
+// NEVER be auto-triggered by a real form submission — it only works when
+// called directly via its own URL, which is why that bug wasn't caught
+// during isolated testing on the refi tool build. Do not split this back
+// out into per-tool files.
+//
+// Classic handler signature only (`exports.handler = async (event) => {}`)
+// — the fetch-style `export default async (req) => {}` signature silently
+// 400s on Netlify. Confirmed the hard way on tool #1's build.
+//
+// Dispatches on `payload.form_name` to route each form to its own email
+// logic below. Add new tools' forms as new cases in the switch statement —
+// never as a new standalone function file.
 
 const RESEND_API_URL = 'https://api.resend.com/emails';
+const RESEND_API_KEY = process.env.RESEND_API_KEY; // shared across all tools, set as NON-secret
+const FROM_EMAIL = process.env.STEWARDS_FROM_EMAIL || 'The Stewards <hello@stewards.loan>';
+const INTERNAL_NOTIFY_EMAIL = process.env.STEWARDS_INTERNAL_EMAIL; // Ryan + Chris
 
+// Reused verbatim across every tool's email — never rewritten per channel.
+const LEGAL_DISCLAIMER = `This is general information based only on what was entered or submitted, and does not constitute a loan approval, pre-qualification, offer of credit, or commitment to lend. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.`;
+
+exports.handler = async (event) => {
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, body: 'Method Not Allowed' };
+  }
+
+  let payload;
+  try {
+    payload = JSON.parse(event.body);
+  } catch (err) {
+    console.error('Failed to parse submission payload');
+    return { statusCode: 400, body: 'Bad Request' };
+  }
+
+  const formName = payload.form_name || (payload.payload && payload.payload.form_name);
+  const data = (payload.payload && payload.payload.data) || payload.data || {};
+
+  try {
+    switch (formName) {
+      case 'lead-capture':
+        await handleLeadCapture(data, formName);
+        break;
+      case 'refi-lead':
+        await handleRefiLead(data);
+        break;
+      case 'loan-estimate-lead':
+        await handleLoanEstimateLead(data);
+        break;
+      case 'second-look-lead':
+        await handleSecondLookLead(data);
+        break;
+      default:
+        console.error('Unrecognized form_name on submission:', formName);
+        return { statusCode: 200, body: 'Unrecognized form, no action taken' };
+    }
+    return { statusCode: 200, body: 'OK' };
+  } catch (err) {
+    // Verify actual delivery via Resend's send history, not this 200/500 —
+    // client-side "Sent" and a function returning 200 both proved nothing
+    // on two prior builds until checked against Resend directly.
+    console.error('Email send failed for form', formName, ':', err.message);
+    return { statusCode: 500, body: 'Email send failed' };
+  }
+};
+
+// ---------------------------------------------------------------------
+// Shared small helpers (used by tool #1's richer HTML template below)
+// ---------------------------------------------------------------------
 function esc(s) {
   return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
@@ -24,32 +86,13 @@ function row(label, value) {
   return `<tr><td style="padding:.4rem 0;color:#7a7474;width:170px">${esc(label)}</td><td style="padding:.4rem 0">${value}</td></tr>`;
 }
 
-async function sendResendEmail({ from, to, subject, html }) {
-  const res = await fetch(RESEND_API_URL, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ from, to: Array.isArray(to) ? to : [to], subject, html }),
-  });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message ?? `HTTP ${res.status}`);
-  }
-}
+// ---------------------------------------------------------------------
+// Tool #1 — What Can I Afford (max-purchase-price.html, form "lead-capture")
+// ---------------------------------------------------------------------
+async function handleLeadCapture(data, formName) {
+  const email = data.email;
 
-// ─── max-purchase-price.html ("lead-capture" form) ────────────────────────
-
-const MPP_TEAM_EMAIL = process.env.TEAM_EMAIL ?? 'stewards@ruoff.com';
-const MPP_FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'team@stewards.loan';
-
-// Same disclaimer already live on the widget page — reused verbatim so the
-// email never says anything about loan terms the page hasn't already said.
-const MPP_LEGAL_DISCLAIMER = "This calculator provides a general estimate based only on the figures you entered and does not constitute a loan approval, pre-qualification, offer of credit, or commitment to lend. It does not represent specific loan terms available to you or advertised by Ruoff Mortgage. Actual purchasing power depends on credit history, property taxes, insurance costs, PMI, program guidelines, and full underwriting review. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.";
-
-function buildMppTeamEmail(data, formName, createdAt) {
-  return `<!DOCTYPE html>
+  const teamHtml = `<!DOCTYPE html>
 <html><body style="font-family:Arial,sans-serif;background:#fffae8;padding:2rem">
   <div style="max-width:520px;margin:0 auto;background:#fff;border-radius:8px;padding:2rem;border:1px solid #ddd5be">
     <div style="font-family:'Arial Black',sans-serif;font-size:1.5rem;color:#f76732;letter-spacing:.08em;margin-bottom:1rem">NEW STEWARD TOOL LEAD</div>
@@ -66,23 +109,19 @@ function buildMppTeamEmail(data, formName, createdAt) {
       ${Number(data.monthly_pmi) > 0 ? row('Monthly PMI', formatMoney(data.monthly_pmi)) : ''}
       ${row('Total Monthly Payment', data.total_monthly_payment ? `<b>${formatMoney(data.total_monthly_payment)}</b>` : '')}
       ${row('Page', data.page_url ? `<a href="${esc(data.page_url)}">${esc(data.page_url)}</a>` : '')}
-      ${row('Submitted', createdAt)}
     </table>
   </div>
 </body></html>`;
-}
 
-function buildMppConsumerEmail(data) {
   const loanAmount = Math.max(Number(data.estimated_price ?? 0) - Number(data.down_payment ?? 0), 0);
   const contextLine = data.total_monthly_payment && data.rate
     ? `Based on an estimated ${formatMoney(data.total_monthly_payment)}/mo payment and a ${esc(data.rate)}% rate.`
     : '';
-
   const pmiRow = Number(data.monthly_pmi) > 0
     ? `<tr><td style="padding:.4rem 0;color:#7a7474">Est. Monthly PMI</td><td style="padding:.4rem 0">${formatMoney(data.monthly_pmi)}</td></tr>`
     : '';
 
-  return `<!DOCTYPE html>
+  const consumerHtml = `<!DOCTYPE html>
 <html><body style="font-family:Arial,sans-serif;background:#fffae8;padding:2rem">
   <div style="max-width:520px;margin:0 auto;background:#403d3d;border-left:4px solid #f76732;border-radius:0 8px 8px 0;padding:2rem;text-align:center">
     <div style="font-family:Arial,sans-serif;font-weight:bold;font-size:.85rem;letter-spacing:.3em;text-transform:uppercase;color:#f76732;margin-bottom:.5rem">Your Estimated Range</div>
@@ -103,93 +142,24 @@ function buildMppConsumerEmail(data) {
     <div style="font-size:.9rem;color:#555;line-height:1.6;margin-bottom:1.25rem">A calculator gives you an estimate. A Steward gives you an actual number, backed by real underwriting — usually within a day.</div>
     <a href="tel:+16147675273" style="display:inline-block;background:#f76732;color:#fffae8;font-family:Arial,sans-serif;font-weight:bold;letter-spacing:.1em;text-transform:uppercase;padding:.9rem 2rem;border-radius:2px;text-decoration:none;font-size:.9rem">Talk to a Steward</a>
   </div>
-  <div style="max-width:520px;margin:1.5rem auto 0 auto;font-size:.75rem;color:#999;line-height:1.6">${esc(MPP_LEGAL_DISCLAIMER)}</div>
+  <div style="max-width:520px;margin:1.5rem auto 0 auto;font-size:.75rem;color:#999;line-height:1.6">${esc(LEGAL_DISCLAIMER)}</div>
 </body></html>`;
-}
 
-async function handleLeadCapture(data, formName, createdAt) {
   const sends = [
-    sendResendEmail({ from: `The Stewards <${MPP_FROM_EMAIL}>`, to: MPP_TEAM_EMAIL, subject: 'New Steward Tool Lead', html: buildMppTeamEmail(data, formName, createdAt) }),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, 'New Steward Tool Lead', teamHtml) : Promise.resolve(),
   ];
-  if (data.email) {
-    sends.push(sendResendEmail({ from: `The Stewards <${MPP_FROM_EMAIL}>`, to: data.email, subject: 'Your Max Purchase Price Estimate', html: buildMppConsumerEmail(data) }));
+  if (email) {
+    sends.push(sendEmail(email, 'Your Max Purchase Price Estimate', consumerHtml));
   }
-  return Promise.allSettled(sends);
+  await Promise.all(sends);
 }
 
-// ─── refi-calculator.html ("refi-lead" form) ──────────────────────────────
-
-const REFI_FROM_EMAIL = process.env.REFI_FROM_EMAIL || 'The Stewards <hello@stewards.loan>';
-// Comma-separated env var value → real array, so Resend's `to` field gets
-// proper multi-recipient handling instead of one malformed literal string.
-const REFI_INTERNAL_EMAIL = (process.env.REFI_INTERNAL_EMAIL || '')
-  .split(',')
-  .map(function (s) { return s.trim(); })
-  .filter(Boolean);
-
-// Reused verbatim from the refi widget's on-page legal disclaimer.
-const REFI_LEGAL_DISCLAIMER = `This calculator provides a general estimate based only on the figures you entered and does not constitute a loan approval, pre-qualification, offer of credit, or commitment to lend. It does not represent specific loan terms available to you or advertised by Ruoff Mortgage. Actual results depend on credit history, exact closing costs, escrow requirements, and full underwriting review. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.`;
-
-function buildRefiConsumerEmail(result) {
-  const goalLabel = {
-    lower_payment: 'lowering your monthly payment',
-    lower_rate: 'lowering your rate',
-    payoff_faster: 'paying off faster',
-    cash_out: 'taking cash out',
-  }[result.goal] || 'refinancing';
-
-  const cashOutLine = result.cashOut
-    ? `<p style="margin:0 0 8px 0;">Cash you'll receive at closing: <strong>${esc(result.cashOut)}</strong></p>`
-    : '';
-
-  return `
-    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
-      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase; color:#403d3d;">Your Refinance Breakdown</h1>
-      <p style="font-size:32px; font-weight:bold; color:#f76732; margin:16px 0;">${esc(result.resultNumber)}</p>
-      <p style="font-size:16px; line-height:1.6;">${esc(result.resultSub)}</p>
-
-      <div style="border-top:1px solid #ddd; margin-top:24px; padding-top:16px; font-size:15px; line-height:1.8;">
-        <p style="margin:0 0 8px 0;">New estimated payment: <strong>${esc(result.newPayment)}</strong></p>
-        <p style="margin:0 0 8px 0;">Monthly payment change: <strong>${esc(result.paymentChange)}</strong></p>
-        <p style="margin:0 0 8px 0;">Break-even on closing costs: <strong>${esc(result.breakEven)}</strong></p>
-        <p style="margin:0 0 8px 0;">Total cost, staying put (${esc(result.yearsStay)} yrs): <strong>${esc(result.totalCostCurrent)}</strong></p>
-        <p style="margin:0 0 8px 0;">Total cost, after refinancing (${esc(result.yearsStay)} yrs): <strong>${esc(result.totalCostNew)}</strong></p>
-        <p style="margin:0 0 8px 0;">Still owed, staying put: <strong>${esc(result.remainingCurrent)}</strong></p>
-        <p style="margin:0 0 8px 0;">Still owed, after refinancing: <strong>${esc(result.remainingNew)}</strong></p>
-        ${cashOutLine}
-      </div>
-
-      <div style="margin-top:28px; padding:20px; background:#403d3d; border-left:4px solid #f76732;">
-        <p style="color:#fffae8; font-size:15px; line-height:1.6; margin:0 0 16px 0;">
-          Since your goal was ${goalLabel}, a Steward can confirm this against your actual credit and give you a real number — usually within a day.
-        </p>
-        <p style="margin:0;">
-          <a href="tel:+16147675273" style="color:#f76732; font-weight:bold; text-decoration:none;">Talk to a Steward: (614) 767-5273</a>
-        </p>
-      </div>
-
-      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${esc(REFI_LEGAL_DISCLAIMER)}</p>
-    </div>
-  `;
-}
-
-function buildRefiInternalEmail(consumerEmail, result) {
-  return `
-    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
-      <p><strong>New refi tool lead:</strong> ${esc(consumerEmail)}</p>
-      <p>Goal: ${esc(result.goal)}</p>
-      <p>Result: ${esc(result.resultNumber)} — ${esc(result.resultSub)}</p>
-      <p>New payment: ${esc(result.newPayment)} (change: ${esc(result.paymentChange)})</p>
-      <p>Break-even: ${esc(result.breakEven)}</p>
-      <p>Total cost staying put vs refinancing (${esc(result.yearsStay)} yrs): ${esc(result.totalCostCurrent)} vs ${esc(result.totalCostNew)}</p>
-      ${result.cashOut ? `<p>Cash out requested: ${esc(result.cashOut)}</p>` : ''}
-    </div>
-  `;
-}
-
+// ---------------------------------------------------------------------
+// Tool #2 — Should You Refinance
+// ---------------------------------------------------------------------
 async function handleRefiLead(data) {
   const email = data.email;
-  if (!email) return Promise.resolve([]);
+  if (!email) return;
 
   const result = {
     resultNumber: data.result_resultNumber || '',
@@ -203,60 +173,158 @@ async function handleRefiLead(data) {
     remainingNew: data.result_remainingNew || '',
     cashOut: data.result_cashOut || '',
     yearsStay: data.result_yearsStay || '',
-    goal: data.result_goal || '',
+    goal: data.result_goal || ''
   };
 
-  const sends = [
-    sendResendEmail({ from: REFI_FROM_EMAIL, to: email, subject: 'Your Refinance Breakdown', html: buildRefiConsumerEmail(result) }),
-  ];
-  if (REFI_INTERNAL_EMAIL.length) {
-    sends.push(sendResendEmail({ from: REFI_FROM_EMAIL, to: REFI_INTERNAL_EMAIL, subject: `Refi Tool Lead: ${email}`, html: buildRefiInternalEmail(email, result) }));
-  }
-  return Promise.allSettled(sends);
+  const goalLabel = {
+    lower_payment: 'lowering your monthly payment',
+    lower_rate: 'lowering your rate',
+    payoff_faster: 'paying off faster',
+    cash_out: 'taking cash out'
+  }[result.goal] || 'refinancing';
+
+  const cashOutLine = result.cashOut
+    ? `<p style="margin:0 0 8px 0;">Cash you'll receive at closing: <strong>${result.cashOut}</strong></p>`
+    : '';
+
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">Your Refinance Breakdown</h1>
+      <p style="font-size:32px; font-weight:bold; color:#f76732; margin:16px 0;">${result.resultNumber}</p>
+      <p style="font-size:16px; line-height:1.6;">${result.resultSub}</p>
+      <div style="border-top:1px solid #ddd; margin-top:24px; padding-top:16px; font-size:15px; line-height:1.8;">
+        <p style="margin:0 0 8px 0;">New estimated payment: <strong>${result.newPayment}</strong></p>
+        <p style="margin:0 0 8px 0;">Monthly payment change: <strong>${result.paymentChange}</strong></p>
+        <p style="margin:0 0 8px 0;">Break-even on closing costs: <strong>${result.breakEven}</strong></p>
+        <p style="margin:0 0 8px 0;">Total cost, staying put (${result.yearsStay} yrs): <strong>${result.totalCostCurrent}</strong></p>
+        <p style="margin:0 0 8px 0;">Total cost, after refinancing (${result.yearsStay} yrs): <strong>${result.totalCostNew}</strong></p>
+        <p style="margin:0 0 8px 0;">Still owed, staying put: <strong>${result.remainingCurrent}</strong></p>
+        <p style="margin:0 0 8px 0;">Still owed, after refinancing: <strong>${result.remainingNew}</strong></p>
+        ${cashOutLine}
+      </div>
+      <div style="margin-top:28px; padding:20px; background:#403d3d; border-left:4px solid #f76732;">
+        <p style="color:#fffae8; font-size:15px; line-height:1.6; margin:0 0 16px 0;">
+          Since your goal was ${goalLabel}, a Steward can confirm this against your actual credit and give you a real number — usually within a day.
+        </p>
+        <p style="margin:0;">
+          <a href="tel:+16147675273" style="color:#f76732; font-weight:bold; text-decoration:none;">Talk to a Steward: (614) 767-5273</a>
+        </p>
+      </div>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${LEGAL_DISCLAIMER}</p>
+    </div>
+  `;
+
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
+      <p><strong>New refi tool lead:</strong> ${email}</p>
+      <p>Goal: ${result.goal}</p>
+      <p>Result: ${result.resultNumber} — ${result.resultSub}</p>
+      <p>New payment: ${result.newPayment} (change: ${result.paymentChange})</p>
+      <p>Break-even: ${result.breakEven}</p>
+      ${result.cashOut ? `<p>Cash out requested: ${result.cashOut}</p>` : ''}
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail(email, 'Your Refinance Breakdown', consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Refi Tool Lead: ${email}`, internalHtml) : Promise.resolve()
+  ]);
 }
 
-// ─── Dispatcher ────────────────────────────────────────────────────────────
-// Netlify's submission-created trigger is documented against the classic
-// Lambda-compatible handler (event.body as a JSON string), not the newer
-// fetch-style `export default (req) => {}` signature. Using the wrong
-// signature here previously meant this function silently never reached the
-// Resend call at all — no error, no send, nothing in Resend's own history.
-exports.handler = async (event) => {
-  console.log('[submission-created] invoked, raw body:', event.body);
+// ---------------------------------------------------------------------
+// Tool #3 (superseded, kept parked per handoff §8/§9.6 — not deployed as
+// live tool #3, but the case stays here harmlessly in case no HTML in this
+// repo ever posts form_name "loan-estimate-lead", nothing triggers it).
+// Confirmation-only by design — no extracted figures are transmitted,
+// since this tool touches real uploaded-document PII on the upload path.
+// ---------------------------------------------------------------------
+async function handleLoanEstimateLead(data) {
+  const email = data.email;
+  if (!email) return;
 
-  let payload;
-  try {
-    const parsed = JSON.parse(event.body);
-    payload = parsed.payload ?? parsed;
-  } catch (err) {
-    console.error('[submission-created] failed to parse event.body:', err.message);
-    return { statusCode: 400, body: 'Invalid payload' };
-  }
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">A Steward Will Follow Up</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks for checking your Loan Estimate against typical ranges. A Steward will reach out to walk through anything worth a closer look — no cost, no obligation.</p>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${LEGAL_DISCLAIMER}</p>
+    </div>
+  `;
 
-  const data = payload?.data ?? {};
-  const formName = payload?.form_name ?? 'unknown';
-  const createdAt = new Date(payload?.created_at ?? Date.now()).toLocaleString('en-US', { timeZone: 'America/New_York' });
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
+      <p><strong>New Loan Estimate checker lead:</strong> ${email}</p>
+      <p>No further detail transmitted by design — this tool's lead capture is confirmation-only.</p>
+    </div>
+  `;
 
-  console.log('[submission-created] form:', formName, 'data:', JSON.stringify(data));
+  await Promise.all([
+    sendEmail(email, 'A Steward Will Follow Up', consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Loan Estimate Tool Lead: ${email}`, internalHtml) : Promise.resolve()
+  ]);
+}
 
-  let results = [];
-  if (formName === 'lead-capture') {
-    results = await handleLeadCapture(data, formName, createdAt);
-  } else if (formName === 'refi-lead') {
-    results = await handleRefiLead(data);
-  } else {
-    console.error('[submission-created] unrecognized form_name, no email sent:', formName);
-  }
+// ---------------------------------------------------------------------
+// Tool #4 — Second Look (upload Loan Estimate, human reviews within 24h)
+//
+// UNVERIFIED — needs confirmation during build/test, flagging honestly:
+// Netlify Forms is expected to store the uploaded file and populate
+// `data.loanEstimate` with a URL to the stored file rather than the raw
+// binary, per Netlify's documented file-upload handling. This has not
+// been tested in this session. Confirm the actual shape of `data` on a
+// real submission (via Netlify's submissions API or dashboard) before
+// trusting that the internal email's file link actually works.
+// ---------------------------------------------------------------------
+async function handleSecondLookLead(data) {
+  const email = data.email;
+  if (!email) return;
 
-  results.forEach((r, i) => {
-    if (r.status === 'rejected') {
-      console.error(`[submission-created] send ${i} failed for form ${formName}:`, r.reason?.message ?? r.reason);
-    } else {
-      console.log(`[submission-created] send ${i} succeeded for form ${formName}`);
-    }
+  const fileLink = data.loanEstimate
+    ? `<p style="margin:0 0 8px 0;"><a href="${data.loanEstimate}">View uploaded Loan Estimate</a></p>`
+    : `<p style="margin:0 0 8px 0; color:#c00;">No file URL found in submission data — check the Netlify Forms dashboard directly for this submission.</p>`;
+
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">We're On It</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks, ${data.firstName || ''} — a Steward is reviewing your Loan Estimate now. Expect to hear back within 24 hours, usually sooner.</p>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">This is a request for a manual review by a licensed loan officer, not an automated quote, loan approval, pre-qualification, offer of credit, or commitment to lend. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.</p>
+    </div>
+  `;
+
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333; line-height:1.8;">
+      <p><strong>New Second Look lead — review within 24 hours</strong></p>
+      <p>Name: ${data.firstName || ''} ${data.lastName || ''}</p>
+      <p>Email: ${email}</p>
+      <p>Phone: ${data.phone || ''}</p>
+      <p>Property State: ${data.propertyState || ''}</p>
+      <p>Closing Date: ${data.closingDate || ''}</p>
+      <p>Credit Score: ${data.creditScore || 'Not provided'}</p>
+      <p>Property Type: ${data.propertyType || ''}</p>
+      <p>Property Usage: ${data.propertyUsage || ''}</p>
+      <p>Notes: ${data.notes || 'None'}</p>
+      ${fileLink}
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail(email, "We're On It — Your Second Look Request", consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Second Look Lead: ${data.firstName || ''} ${data.lastName || ''}`, internalHtml) : Promise.resolve()
+  ]);
+}
+
+// ---------------------------------------------------------------------
+async function sendEmail(to, subject, html) {
+  const res = await fetch(RESEND_API_URL, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${RESEND_API_KEY}`,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html })
   });
-
-  // Netlify doesn't act on the response, but return 200 so this doesn't show
-  // up as a failed invocation in the function logs.
-  return { statusCode: 200, body: 'ok' };
-};
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Resend API error ${res.status}: ${text}`);
+  }
+  return res.json();
+}
