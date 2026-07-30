@@ -408,10 +408,10 @@
     <h2 class="cta-head">We'll Email You <span>The Full Breakdown</span></h2>
     <p class="cta-copy">Every number above, plus what a Steward would actually recommend based on it.</p>
 
-    <form id="refiForm" name="refi-lead" data-netlify="true" netlify-honeypot="company" onsubmit="return handleSubmit(event)">
+    <form id="refiForm" name="refi-lead" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return handleSubmit(event)">
       <input type="hidden" name="form-name" value="refi-lead">
       <div style="display:none;">
-        <label>Don't fill this out: <input name="company"></label>
+        <label>Don't fill this out: <input name="bot-field"></label>
       </div>
       <!-- Result fields must be static hidden inputs, not dynamically appended
            at submit time — Netlify's build-time form-detection bot only scans
