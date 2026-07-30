@@ -278,9 +278,30 @@ async function handleSecondLookLead(data) {
   const email = data.email;
   if (!email) return;
 
-  const fileLink = data.loanEstimate
-    ? `<p style="margin:0 0 8px 0;"><a href="${data.loanEstimate}">View uploaded Loan Estimate</a></p>`
+  // Netlify delivers file-upload fields as an object ({filename,type,size,url}),
+  // not a plain URL string — confirmed via a real submission whose email
+  // rendered href="[object Object]" until this was fixed.
+  const fileUrl = data.loanEstimate && data.loanEstimate.url;
+  const fileName = (data.loanEstimate && data.loanEstimate.filename) || 'loan-estimate';
+
+  const fileLink = fileUrl
+    ? `<p style="margin:0 0 8px 0;"><a href="${esc(fileUrl)}">View uploaded Loan Estimate</a></p>`
     : `<p style="margin:0 0 8px 0; color:#c00;">No file URL found in submission data — check the Netlify Forms dashboard directly for this submission.</p>`;
+
+  let attachments;
+  if (fileUrl) {
+    try {
+      const fileRes = await fetch(fileUrl);
+      if (fileRes.ok) {
+        const buf = Buffer.from(await fileRes.arrayBuffer());
+        attachments = [{ filename: fileName, content: buf.toString('base64') }];
+      } else {
+        console.error('Failed to fetch uploaded file for attachment, status', fileRes.status);
+      }
+    } catch (err) {
+      console.error('Failed to fetch uploaded file for attachment:', err.message);
+    }
+  }
 
   const consumerHtml = `
     <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
@@ -308,19 +329,22 @@ async function handleSecondLookLead(data) {
 
   await Promise.all([
     sendEmail(email, "We're On It — Your Second Look Request", consumerHtml),
-    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Second Look Lead: ${data.firstName || ''} ${data.lastName || ''}`, internalHtml) : Promise.resolve()
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Second Look Lead: ${data.firstName || ''} ${data.lastName || ''}`, internalHtml, attachments) : Promise.resolve()
   ]);
 }
 
 // ---------------------------------------------------------------------
-async function sendEmail(to, subject, html) {
+async function sendEmail(to, subject, html, attachments) {
+  const payload = { from: FROM_EMAIL, to, subject, html };
+  if (attachments && attachments.length) payload.attachments = attachments;
+
   const res = await fetch(RESEND_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${RESEND_API_KEY}`,
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ from: FROM_EMAIL, to, subject, html })
+    body: JSON.stringify(payload)
   });
   if (!res.ok) {
     const text = await res.text();
