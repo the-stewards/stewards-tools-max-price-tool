@@ -288,13 +288,25 @@ async function handleSecondLookLead(data) {
     ? `<p style="margin:0 0 8px 0;"><a href="${esc(fileUrl)}">View uploaded Loan Estimate</a></p>`
     : `<p style="margin:0 0 8px 0; color:#c00;">No file URL found in submission data — check the Netlify Forms dashboard directly for this submission.</p>`;
 
+  // Base64 inflates size ~33% — stay well under Resend/SES's combined
+  // request-size ceiling rather than risking the whole send failing.
+  const MAX_ATTACHMENT_BYTES = 8 * 1024 * 1024;
   let attachments;
   if (fileUrl) {
     try {
       const fileRes = await fetch(fileUrl);
       if (fileRes.ok) {
-        const buf = Buffer.from(await fileRes.arrayBuffer());
-        attachments = [{ filename: fileName, content: buf.toString('base64') }];
+        const declaredSize = Number(fileRes.headers.get('content-length'));
+        if (declaredSize && declaredSize > MAX_ATTACHMENT_BYTES) {
+          console.error('Uploaded file too large to attach, falling back to link only:', declaredSize);
+        } else {
+          const buf = Buffer.from(await fileRes.arrayBuffer());
+          if (buf.length > MAX_ATTACHMENT_BYTES) {
+            console.error('Uploaded file too large to attach, falling back to link only:', buf.length);
+          } else {
+            attachments = [{ filename: fileName, content: buf.toString('base64') }];
+          }
+        }
       } else {
         console.error('Failed to fetch uploaded file for attachment, status', fileRes.status);
       }

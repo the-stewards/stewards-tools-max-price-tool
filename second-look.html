@@ -160,7 +160,7 @@
     <div class="field">
       <label for="creditScore">Credit Score</label>
       <p class="hint">Optional — your best estimate is fine.</p>
-      <input type="text" inputmode="numeric" id="creditScore" name="creditScore">
+      <input type="text" inputmode="numeric" id="creditScore" name="creditScore" maxlength="3" oninput="this.value=this.value.replace(/\D/g,'')">
     </div>
 
     <div class="field">
