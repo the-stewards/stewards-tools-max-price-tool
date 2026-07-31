@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Find Down Payment Help | The Stewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fffae8; font-family: 'Frank Ruhl Libre', serif; color: #555; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 40px 24px 60px 24px; }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: clamp(30px, 6.5vw, 44px); line-height: 1.05; letter-spacing: -0.01em;
+    text-transform: uppercase; color: #403d3d; margin: 0 0 16px 0;
+  }
+  h1 span { color: #f76732; }
+  hr.primary { border: none; border-top: 2px solid #f76732; width: 60px; margin: 0 0 20px 0; }
+  .deck { font-size: 18px; font-weight: 300; line-height: 1.75; color: #555; margin: 0 0 32px 0; max-width: 520px; }
+  .field { margin-bottom: 20px; }
+  label {
+    display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 18px; letter-spacing: 0.05em; text-transform: uppercase; color: #403d3d; margin-bottom: 4px;
+  }
+  .hint { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 15px; color: #999; margin: 0 0 10px 0; }
+  .input-row { position: relative; }
+  .prefix {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-family: 'Frank Ruhl Libre', serif; font-size: 18px; color: #888; pointer-events: none;
+  }
+  input[type=text], select {
+    width: 100%; font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 400;
+    color: #403d3d; background: #ffffff; border: 1px solid #dddddd; border-radius: 3px;
+    padding: 16px 16px; padding-left: 30px; outline: none; min-height: 56px;
+  }
+  input.no-prefix { padding-left: 16px; }
+  input:focus, select:focus { border-color: #f76732; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
+
+  .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  .choice-btn {
+    background: #dddddd; border: 1px solid #dddddd; border-radius: 3px; padding: 20px 14px;
+    min-height: 64px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 16px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.2; color: #666; text-align: center;
+  }
+  .choice-btn.active { background: #f76732; border-color: #f76732; color: #fffae8; }
+
+  .multi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+  @media (max-width: 480px) { .multi-grid { grid-template-columns: 1fr; } }
+  .multi-btn {
+    background: #dddddd; border: 1px solid #dddddd; border-radius: 3px; padding: 16px 14px;
+    min-height: 56px; cursor: pointer; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 15px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.2; color: #666; text-align: center;
+  }
+  .multi-btn.active { background: #403d3d; border-color: #403d3d; color: #fffae8; }
+
+  .calc-btn {
+    width: 100%; background: #403d3d; color: #fffae8; font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 22px; letter-spacing: 0.15em; text-transform: uppercase; padding: 22px;
+    border: none; border-radius: 2px; cursor: pointer; margin-top: 12px; min-height: 64px;
+  }
+  .calc-btn:hover { background: #2f2d2d; }
+
+  .results-block { display: none; margin-top: 40px; }
+  .results-label {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px;
+    letter-spacing: 0.3em; text-transform: uppercase; color: #f76732; margin: 0 0 20px 0;
+  }
+  .program-card {
+    background: #ffffff; border: 1px solid #dddddd; border-radius: 3px; padding: 24px; margin-bottom: 16px;
+  }
+  .program-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 10px; }
+  .program-name {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 20px;
+    letter-spacing: 0.01em; text-transform: uppercase; color: #403d3d;
+  }
+  .program-type-grant {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #f76732; background: #fff0e8; padding: 4px 10px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .program-type-bond {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: #666; background: #f0f0f0; padding: 4px 10px; border-radius: 10px;
+    white-space: nowrap;
+  }
+  .program-amount {
+    font-family: 'Frank Ruhl Libre', serif; font-weight: 500; font-size: 18px; color: #403d3d; margin: 0 0 10px 0;
+  }
+  .program-copy { font-size: 15px; font-weight: 300; line-height: 1.6; color: #555; margin: 0 0 12px 0; }
+  .program-match {
+    font-size: 14px; font-weight: 300; line-height: 1.5; color: #999; border-top: 1px solid #f0f0f0; padding-top: 10px; margin: 0;
+  }
+  .no-results {
+    background: #fff; border: 1px solid #dddddd; border-radius: 3px; padding: 28px; text-align: center;
+  }
+  .no-results p { font-size: 16px; font-weight: 300; line-height: 1.7; color: #555; margin: 0; }
+
+  .cta-block {
+    display: none; margin-top: 24px; background: #fffae8; border: 1px solid #dddddd; border-radius: 3px;
+    padding: 32px; text-align: center;
+  }
+  .cta-label {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.3em;
+    text-transform: uppercase; color: #f76732; margin: 0 0 10px 0;
+  }
+  .cta-head {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 24px; text-transform: uppercase;
+    color: #403d3d; margin: 0 0 14px 0; line-height: 1.15;
+  }
+  .cta-head span { color: #f76732; }
+  .cta-copy { font-size: 16px; font-weight: 300; line-height: 1.7; color: #555; margin: 0 0 24px 0; }
+  .email-row { display: flex; gap: 12px; max-width: 440px; margin: 0 auto; }
+  @media (max-width: 480px) { .email-row { flex-direction: column; } }
+  .email-row input { flex: 1; padding-left: 16px; }
+  .email-btn {
+    background: #f76732; color: #fffae8; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 16px; letter-spacing: 0.1em; text-transform: uppercase; padding: 0 24px; border: none;
+    border-radius: 2px; cursor: pointer; white-space: nowrap; min-height: 56px;
+  }
+  .confirm {
+    display: none; font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px;
+    color: #403d3d; letter-spacing: 0.05em; margin-top: 12px;
+  }
+  .micro {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #888; margin: 14px 0 0 0;
+  }
+  .legal { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 16px; color: #999; line-height: 1.75; margin-top: 32px; }
+  .mock-flag {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 13px; letter-spacing: 0.05em;
+    text-transform: uppercase; color: #f76732; background: #fff0e8; border: 1px dashed #f76732;
+    padding: 10px 14px; margin: 0 0 24px 0; border-radius: 3px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="mock-flag">Dev preview — showing sample programs, not live data. Real matching requires a licensed data source (e.g. Down Payment Resource) not yet integrated.</div>
+
+  <h1>Find Down Payment <span>Help</span></h1>
+  <hr class="primary">
+  <p class="deck">Grants and bond programs can knock thousands off what you need to bring to closing. Answer a few questions to see what you might qualify for.</p>
+
+  <div class="field">
+    <label for="income">Gross Annual Household Income</label>
+    <div class="input-row"><span class="prefix">$</span><input type="text" inputmode="numeric" id="income" placeholder="65,000"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="field">
+      <label for="zip">Zip Code</label>
+      <p class="hint">Where you want to buy.</p>
+      <input type="text" inputmode="numeric" id="zip" class="no-prefix" placeholder="43215" maxlength="5">
+    </div>
+    <div class="field">
+      <label for="householdSize">Household Size</label>
+      <input type="text" inputmode="numeric" id="householdSize" class="no-prefix" placeholder="3">
+    </div>
+  </div>
+
+  <div class="field">
+    <label>First-Time Homebuyer?</label>
+    <p class="hint">Haven't owned a home in the last 3 years — most programs use this definition, not just "never owned."</p>
+    <div class="btn-grid" id="firstTimeGrid">
+      <div class="choice-btn active" data-value="yes" onclick="setFirstTime('yes')">Yes</div>
+      <div class="choice-btn" data-value="no" onclick="setFirstTime('no')">No</div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label>Do Any Of These Apply?</label>
+    <p class="hint">Tap all that apply — unlocks additional programs.</p>
+    <div class="multi-grid" id="statusGrid">
+      <div class="multi-btn" data-value="veteran" onclick="toggleStatus('veteran')">Veteran / Military</div>
+      <div class="multi-btn" data-value="teacher" onclick="toggleStatus('teacher')">Teacher</div>
+      <div class="multi-btn" data-value="firstresponder" onclick="toggleStatus('firstresponder')">First Responder</div>
+      <div class="multi-btn" data-value="none" onclick="toggleStatus('none')">None Of These</div>
+    </div>
+  </div>
+
+  <div class="two-col">
+    <div class="field">
+      <label for="targetPrice">Target Purchase Price</label>
+      <div class="input-row"><span class="prefix">$</span><input type="text" inputmode="numeric" id="targetPrice" placeholder="240,000"></div>
+    </div>
+    <div class="field">
+      <label for="creditScore">Credit Score Range</label>
+      <select id="creditScore">
+        <option value="">Select one</option>
+        <option value="740">740+</option>
+        <option value="700">700-739</option>
+        <option value="660">660-699</option>
+        <option value="620">620-659</option>
+        <option value="580">580-619</option>
+        <option value="0">Below 580</option>
+      </select>
+    </div>
+  </div>
+
+  <button class="calc-btn" onclick="findPrograms()">Find My Programs</button>
+
+  <div class="results-block" id="resultsBlock"></div>
+
+  <div class="cta-block" id="ctaBlock">
+    <p class="cta-label">Next Step</p>
+    <h2 class="cta-head">Confirm What You <span>Actually Qualify For</span></h2>
+    <p class="cta-copy">Program availability and funding changes constantly. A Steward can check current status and stack the right ones for your situation.</p>
+    <form id="dpaForm" name="down-payment-lead" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return handleSubmit(event)">
+      <input type="hidden" name="form-name" value="down-payment-lead">
+      <div style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></div>
+      <div class="email-row">
+        <input type="text" id="emailInput" name="email" class="no-prefix" placeholder="you@email.com" required>
+        <button type="submit" class="email-btn">Email Me This</button>
+      </div>
+    </form>
+    <p class="confirm" id="emailConfirm">Sent — check your inbox shortly.</p>
+    <p class="micro">No cost. No obligation.</p>
+  </div>
+
+  <p class="legal">
+    This tool provides general, educational information about down payment assistance programs based only on the figures entered and does not constitute program pre-qualification, a loan approval, offer of credit, or commitment to lend. This is not a complete list of every program you may qualify for — only a sample of common program types matched against what you entered. Program availability, funding, and eligibility rules change frequently and vary by administering agency. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.
+  </p>
+
+</div>
+
+<script>
+let firstTimeValue = 'yes';
+let statusValues = [];
+
+const currencyFieldIds = ['income', 'targetPrice'];
+currencyFieldIds.forEach(function(id) {
+  const el = document.getElementById(id);
+  el.addEventListener('input', function() {
+    const raw = el.value.replace(/[^0-9]/g, '');
+    el.value = raw ? parseInt(raw, 10).toLocaleString('en-US') : '';
+  });
+});
+
+function parseNum(id) {
+  const v = document.getElementById(id).value.replace(/[^0-9.]/g, '');
+  return parseFloat(v) || 0;
+}
+function formatCurrency(n) {
+  return '$' + Math.round(n).toLocaleString('en-US');
+}
+
+function setFirstTime(val) {
+  firstTimeValue = val;
+  document.querySelectorAll('#firstTimeGrid .choice-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.dataset.value === val);
+  });
+}
+
+function toggleStatus(val) {
+  if (val === 'none') {
+    statusValues = [];
+    document.querySelectorAll('#statusGrid .multi-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.value === 'none');
+    });
+    return;
+  }
+  document.querySelector('#statusGrid .multi-btn[data-value="none"]').classList.remove('active');
+  const idx = statusValues.indexOf(val);
+  if (idx > -1) {
+    statusValues.splice(idx, 1);
+  } else {
+    statusValues.push(val);
+  }
+  document.querySelectorAll('#statusGrid .multi-btn').forEach(function(btn) {
+    if (btn.dataset.value !== 'none') {
+      btn.classList.toggle('active', statusValues.indexOf(btn.dataset.value) > -1);
+    }
+  });
+}
+
+// ---------------------------------------------------------------------
+// MOCK MATCHING LOGIC — replace this entire function with a real call to
+// the licensed data source (e.g. Down Payment Resource API) once that
+// vendor decision is made. Everything above and below this function
+// (form, fields, rendering) stays the same regardless of data source —
+// this is the single isolated swap point.
+//
+// Real integration should call a serverless function (never the vendor
+// API directly from the browser, to keep any API key server-side), pass
+// along zip/income/household size/first-time/status/price/credit, and
+// return a normalized array of { name, type, amount, description,
+// matchReason } objects matching the shape used below.
+// ---------------------------------------------------------------------
+// ---------------------------------------------------------------------
+// SAMPLE zip-to-county crosswalk + SAMPLE HUD-style AMI tables.
+//
+// THESE ARE PLACEHOLDER NUMBERS, NOT REAL HUD DATA. Real integration
+// needs:
+//   1. A proper zip-to-county crosswalk (HUD publishes one, updated
+//      quarterly) — zip codes don't map cleanly to counties; some
+//      counties span multiple zips, some zips cross county lines.
+//   2. HUD's actual published AMI limits per county, already broken out
+//      by household size (1-person through 8+) — HUD does this
+//      adjustment for you; don't build a percentage-of-median formula
+//      yourself, use their published per-household-size dollar figures.
+//   3. A refresh process, since HUD updates these annually.
+// This mock covers a handful of zips only, for demonstration.
+// ---------------------------------------------------------------------
+const SAMPLE_ZIP_TO_COUNTY = {
+  '43215': 'Sample County A', '43081': 'Sample County A', '43068': 'Sample County A',
+  '90001': 'Sample County B', '90210': 'Sample County B',
+  '10001': 'Sample County C', '10025': 'Sample County C'
+};
+
+// Illustrative AMI figures by household size, per sample county. Round,
+// made-up numbers — not sourced from HUD. Replace entirely with real data.
+const SAMPLE_AMI_TABLE = {
+  'Sample County A': { 1: 62000, 2: 71000, 3: 80000, 4: 89000, 5: 96000 },
+  'Sample County B': { 1: 78000, 2: 89000, 3: 100000, 4: 111000, 5: 120000 },
+  'Sample County C': { 1: 85000, 2: 97000, 3: 109000, 4: 121000, 5: 131000 }
+};
+
+function resolveCounty(zip) {
+  return SAMPLE_ZIP_TO_COUNTY[zip] || null;
+}
+
+function getAmiPercent(county, householdSize, income) {
+  const table = SAMPLE_AMI_TABLE[county];
+  if (!table) return null;
+  const size = Math.min(Math.max(Math.round(householdSize) || 1, 1), 5);
+  const countyAmi = table[size];
+  if (!countyAmi) return null;
+  return (income / countyAmi) * 100;
+}
+
+function getMockPrograms(inputs) {
+  const results = [];
+  const county = resolveCounty(inputs.zip);
+
+  if (!county) {
+    // Zip not in the sample crosswalk — real version covers all US zips.
+    return { programs: [], countyResolved: false };
+  }
+
+  const amiPercent = getAmiPercent(county, inputs.householdSize, inputs.income);
+  if (amiPercent === null) {
+    return { programs: [], countyResolved: false };
+  }
+
+  // Sample bond program — income-gated at 140% AMI, a common bond-program ceiling
+  if (inputs.firstTime === 'yes' && inputs.creditScore >= 640 && amiPercent <= 140) {
+    results.push({
+      name: 'State Housing Bond Assistance (Sample)',
+      type: 'bond',
+      amount: '2.5% - 5% of purchase price',
+      description: 'A state-run bond program pairing a below-market rate with down payment assistance, structured as a low-interest or forgivable second mortgage.',
+      matchReason: 'Matched on: first-time buyer status, credit score ' + inputs.creditScore + '+, income at ' + amiPercent.toFixed(0) + '% of area median for your household size'
+    });
+  }
+
+  // Sample grant — tighter income gate at 80% AMI, common for grant-type programs,
+  // plus a purchase price cap
+  const priceCapOk = inputs.targetPrice === 0 || inputs.targetPrice <= 350000;
+  if (amiPercent <= 80 && inputs.firstTime === 'yes' && priceCapOk) {
+    results.push({
+      name: 'Local Homebuyer Grant (Sample)',
+      type: 'grant',
+      amount: 'Up to $10,000, forgivable after 5 years',
+      description: 'A forgivable grant (no repayment required if you stay in the home for the required period) aimed at moderate-income first-time buyers in your area.',
+      matchReason: 'Matched on: income at ' + amiPercent.toFixed(0) + '% of area median (limit 80%), first-time buyer status' + (inputs.targetPrice > 0 ? ', purchase price under cap' : '')
+    });
+  }
+
+  // Sample "Hero" program — military/teacher/first-responder specific, no AMI gate
+  if (inputs.statuses.length > 0) {
+    const labels = inputs.statuses.map(function(s) {
+      return { veteran: 'Veteran/Military', teacher: 'Teacher', firstresponder: 'First Responder' }[s];
+    }).join(', ');
+    results.push({
+      name: 'Community Heroes Program (Sample)',
+      type: 'grant',
+      amount: 'Additional 0.25% rate reduction + up to $3,000 grant',
+      description: 'An additional layer of assistance stacked on top of standard bond/grant programs for veterans, teachers, and first responders.',
+      matchReason: 'Matched on: ' + labels
+    });
+  }
+
+  // Sample program for lower credit scores — represents FHA-paired DPA, gated at 115% AMI
+  if (inputs.creditScore > 0 && inputs.creditScore < 640 && amiPercent <= 115) {
+    results.push({
+      name: 'FHA-Paired Assistance Program (Sample)',
+      type: 'bond',
+      amount: '3% of loan amount',
+      description: 'Down payment assistance specifically structured to pair with FHA financing, generally more flexible on credit score than conventional bond programs.',
+      matchReason: 'Matched on: credit score under 640, income at ' + amiPercent.toFixed(0) + '% of area median (limit 115%)'
+    });
+  }
+
+  return { programs: results, countyResolved: true, amiPercent: amiPercent };
+}
+
+function findPrograms() {
+  const income = parseNum('income');
+  const zip = document.getElementById('zip').value.trim();
+  const householdSize = parseNum('householdSize');
+  const targetPrice = parseNum('targetPrice');
+  const creditScore = parseNum('creditScore');
+
+  if (income <= 0 || zip.length !== 5) {
+    alert('Enter your income and a 5-digit zip code to search.');
+    return;
+  }
+
+  const inputs = {
+    income: income,
+    zip: zip,
+    householdSize: householdSize,
+    firstTime: firstTimeValue,
+    statuses: statusValues,
+    targetPrice: targetPrice,
+    creditScore: creditScore
+  };
+
+  const result = getMockPrograms(inputs);
+  const resultsBlock = document.getElementById('resultsBlock');
+
+  if (!result.countyResolved) {
+    resultsBlock.innerHTML = `
+      <p class="results-label">Results</p>
+      <div class="no-results">
+        <p>That zip code isn't in this preview's sample coverage area. In the live version, every US zip resolves to its county for accurate matching — this dev build only demonstrates a handful of sample zips (try 43215, 90001, or 10001).</p>
+      </div>
+    `;
+  } else if (result.programs.length === 0) {
+    resultsBlock.innerHTML = `
+      <p class="results-label">Results</p>
+      <div class="no-results">
+        <p>Nothing matched based on what you entered — that doesn't mean nothing's out there. Program eligibility is nuanced, and a Steward can check options this quick search might miss.</p>
+      </div>
+    `;
+  } else {
+    const cardsHtml = result.programs.map(function(p) {
+      const typeClass = p.type === 'grant' ? 'program-type-grant' : 'program-type-bond';
+      const typeLabel = p.type === 'grant' ? 'Grant' : 'Bond Program';
+      return `
+        <div class="program-card">
+          <div class="program-head">
+            <span class="program-name">${p.name}</span>
+            <span class="${typeClass}">${typeLabel}</span>
+          </div>
+          <p class="program-amount">${p.amount}</p>
+          <p class="program-copy">${p.description}</p>
+          <p class="program-match">${p.matchReason}</p>
+        </div>
+      `;
+    }).join('');
+    resultsBlock.innerHTML = `<p class="results-label">Programs You May Qualify For</p>` + cardsHtml;
+  }
+
+  resultsBlock.style.display = 'block';
+  document.getElementById('ctaBlock').style.display = 'block';
+  resultsBlock.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function encodeFormData(form) {
+  const data = new FormData(form);
+  return new URLSearchParams(data).toString();
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('dpaForm');
+  const email = document.getElementById('emailInput').value.trim();
+  if (!email || !email.includes('@')) {
+    alert('Enter a valid email address.');
+    return false;
+  }
+  // Confirmation-only, matching the loan-estimate-checker pattern — this
+  // tool's results are sample/mock data anyway, no real program figures
+  // to responsibly include in an email yet.
+  fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encodeFormData(form)
+  })
+    .then(function() {
+      document.getElementById('emailConfirm').style.display = 'block';
+      form.style.display = 'none';
+    })
+    .catch(function(err) {
+      console.error('Form submission error:', err);
+      alert('Something went wrong sending that — try again in a moment.');
+    });
+  return false;
+}
+</script>
+
+</body>
+</html>
