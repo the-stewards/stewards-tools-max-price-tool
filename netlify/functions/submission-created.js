@@ -55,6 +55,9 @@ exports.handler = async (event) => {
       case 'second-look-lead':
         await handleSecondLookLead(data);
         break;
+      case 'down-payment-lead':
+        await handleDownPaymentLead(data);
+        break;
       default:
         console.error('Unrecognized form_name on submission:', formName);
         return { statusCode: 200, body: 'Unrecognized form, no action taken' };
@@ -342,6 +345,38 @@ async function handleSecondLookLead(data) {
   await Promise.all([
     sendEmail(email, "We're On It — Your Second Look Request", consumerHtml),
     INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Second Look Lead: ${data.firstName || ''} ${data.lastName || ''}`, internalHtml, attachments) : Promise.resolve()
+  ]);
+}
+
+// ---------------------------------------------------------------------
+// Down Payment Help Finder — confirmation-only, matching the loan-estimate
+// checker pattern. Results shown to the user are currently sample/mock
+// data (pending real DPA data source integration), so there are no real
+// program figures worth transmitting in an email yet. Revisit once the
+// matching logic is wired to a real data source.
+// ---------------------------------------------------------------------
+async function handleDownPaymentLead(data) {
+  const email = data.email;
+  if (!email) return;
+
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">A Steward Will Follow Up</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks for checking out down payment assistance options. A Steward will follow up to confirm what you actually qualify for and help stack the right programs together.</p>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${LEGAL_DISCLAIMER}</p>
+    </div>
+  `;
+
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
+      <p><strong>New Down Payment Finder lead:</strong> ${email}</p>
+      <p>No further detail transmitted by design — this tool's lead capture is confirmation-only, and current results are sample/mock data pending real DPA data source integration.</p>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail(email, 'A Steward Will Follow Up', consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Down Payment Finder Lead: ${email}`, internalHtml) : Promise.resolve()
   ]);
 }
 
