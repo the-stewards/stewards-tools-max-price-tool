@@ -80,7 +80,10 @@ function esc(s) {
 }
 
 function formatMoney(n) {
-  const num = Number(n);
+  // Currency inputs submit comma-formatted strings (e.g. "65,000") — strip
+  // non-numeric characters first, since Number("65,000") is NaN and was
+  // silently falling back to raw unformatted text.
+  const num = Number(String(n ?? '').replace(/[^0-9.-]/g, ''));
   return Number.isFinite(num) ? '$' + Math.round(num).toLocaleString('en-US') : esc(n);
 }
 
