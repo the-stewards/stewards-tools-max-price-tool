@@ -13,14 +13,37 @@
 //   - currentMortgageRate (FRED MORTGAGE30US, used by the affordability
 //     index once income data is live)
 //
-// STILL PENDING (needs CENSUS_API_KEY, not yet provided):
-//   - medianIncome, permitsPerYear, demographics, tenure — Census ACS /
-//     Building Permits Survey. Stubbed to return null with a `pending:
-//     true` flag rather than fabricated numbers. NOT YET CODED against a
-//     verified real Census API response shape - do that before flipping
-//     `census: true` below, same discipline as the FHFA lookup: confirm
-//     the actual response first, don't build on assumption.
-//   - affordabilityIndex - depends on medianIncome, so pending with it.
+// CENSUS — CODE-COMPLETE, GATED ON CENSUS_API_KEY (2026-08-01):
+//   Confirmed 2026-08-01 that Census's keyless testing tier is gone —
+//   every request now hard-requires a key (verified: a real unkeyed
+//   call returns an HTML "Missing Key" page, not JSON). Ryan's key
+//   signup emails aren't arriving; separate issue, being chased.
+//
+//   Because there was no way to test a live authenticated response,
+//   getMedianIncome() and getTenure() below are written against
+//   Census's documented, stable ACS API contract (array-of-arrays,
+//   header row + one data row per geography — unchanged across ACS
+//   releases for years) rather than a verified real response. The
+//   moment CENSUS_API_KEY is set, hit this function once and confirm
+//   the actual shape before trusting it — same discipline that caught
+//   the FHFA CSV URL guess being wrong (that one 404'd loudly; a wrong
+//   ACS variable code would fail silently with a plausible-looking
+//   wrong number, which is worse).
+//
+//   Deliberately NOT attempted yet, left pending even once the key
+//   works:
+//   - demographics (age brackets) — ACS table B01001 needs ~20 exact
+//     sex/age cell codes summed into 4 custom brackets. Getting one
+//     cell boundary wrong produces a wrong-but-plausible number with
+//     no error to catch it. Needs a verification pass against Census's
+//     own table docs before writing, not a from-memory guess.
+//   - permitsPerYear — Census's Building Permits Survey is a different,
+//     less-familiar timeseries API (not the ACS pattern above). Endpoint
+//     shape not confirmed; needs its own research pass.
+//   - affordabilityIndex — needs income (about to be live) AND
+//     medianPrice (Tier 2, not built — see below). Getting the Census
+//     key does NOT unblock this one by itself; flagging so that's not
+//     forgotten when the key lands and this still shows "Pending."
 //
 // STILL MOCK (Tier 2/3, not started):
 //   - medianPrice, medianDaysOnMarket, activeListings (Redfin/Realtor.com
@@ -107,6 +130,71 @@ async function getCurrentMortgageRate() {
   }
 }
 
+async function fetchCensusJson(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Census API error ${res.status}`);
+  const json = await res.json();
+  // ACS returns a 2D array: [headerRow, dataRow1, dataRow2, ...]. Treat
+  // anything else (e.g. the "Missing Key" HTML page, or an error JSON
+  // object) as a shape mismatch rather than silently indexing into it.
+  if (!Array.isArray(json) || json.length < 2) {
+    throw new Error('Unexpected Census response shape: ' + JSON.stringify(json).slice(0, 200));
+  }
+  return json;
+}
+
+async function getMedianIncome(countyFips) {
+  const stateFips = countyFips.slice(0, 2);
+  const countyOnly = countyFips.slice(2);
+  try {
+    const [localRows, nationalRows] = await Promise.all([
+      fetchCensusJson(`https://api.census.gov/data/2023/acs/acs5?get=NAME,B19013_001E&for=county:${countyOnly}&in=state:${stateFips}&key=${CENSUS_API_KEY}`),
+      fetchCensusJson(`https://api.census.gov/data/2023/acs/acs5?get=NAME,B19013_001E&for=us:*&key=${CENSUS_API_KEY}`)
+    ]);
+    const local = Number(localRows[1][1]);
+    const national = Number(nationalRows[1][1]);
+    if (!local || !national) return null;
+    return { local, national };
+  } catch (err) {
+    console.error('Census median income fetch failed for', countyFips, ':', err.message);
+    return null;
+  }
+}
+
+async function getTenure(countyFips) {
+  const stateFips = countyFips.slice(0, 2);
+  const countyOnly = countyFips.slice(2);
+  try {
+    const rows = await fetchCensusJson(`https://api.census.gov/data/2023/acs/acs5?get=NAME,B25003_002E,B25003_003E&for=county:${countyOnly}&in=state:${stateFips}&key=${CENSUS_API_KEY}`);
+    const [, owner, renter] = rows[1];
+    const homeowners = Number(owner);
+    const renters = Number(renter);
+    if (!homeowners || !renters) return null;
+    return { homeowners, renters };
+  } catch (err) {
+    console.error('Census tenure fetch failed for', countyFips, ':', err.message);
+    return null;
+  }
+}
+
+async function getCensusData(countyFips) {
+  if (!CENSUS_API_KEY) {
+    return { pending: true, medianIncome: null, tenure: null, permitsPerYear: null, demographics: null, affordabilityIndex: null };
+  }
+  const [medianIncome, tenure] = await Promise.all([
+    getMedianIncome(countyFips),
+    getTenure(countyFips)
+  ]);
+  return {
+    pending: false,
+    medianIncome,
+    tenure,
+    permitsPerYear: null, // needs its own endpoint research - see comment block above
+    demographics: null,   // needs its own verification pass - see comment block above
+    affordabilityIndex: null // blocked on medianPrice (Tier 2, not built) even with income+rate live
+  };
+}
+
 exports.handler = async (event) => {
   const zip = (event.queryStringParameters && event.queryStringParameters.zip || '').trim();
   if (!/^[0-9]{5}$/.test(zip)) {
@@ -119,9 +207,10 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: JSON.stringify({ resolved: false }) };
   }
 
-  const [historicalAppreciation, currentMortgageRate] = await Promise.all([
+  const [historicalAppreciation, currentMortgageRate, census] = await Promise.all([
     getHistoricalAppreciation(county.countyFips),
-    getCurrentMortgageRate()
+    getCurrentMortgageRate(),
+    getCensusData(county.countyFips)
   ]);
 
   const result = {
@@ -133,15 +222,10 @@ exports.handler = async (event) => {
     historicalAppreciation,
     currentMortgageRate,
 
-    // Pending Census key - null + flag rather than fabricated numbers
-    census: {
-      pending: !CENSUS_API_KEY,
-      medianIncome: null,
-      permitsPerYear: null,
-      demographics: null,
-      tenure: null,
-      affordabilityIndex: null
-    },
+    // Live once CENSUS_API_KEY is set (income, tenure); permits,
+    // demographics, and affordabilityIndex stay pending regardless -
+    // see the comment block above for why.
+    census,
 
     // Not started - Tier 2 (periodic export access unverified) / Tier 3 (vendor decision pending)
     medianPrice: null,

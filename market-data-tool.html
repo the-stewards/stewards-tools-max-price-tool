@@ -142,7 +142,13 @@
 <body>
 <div class="wrap">
 
-  <div class="mock-flag" id="statusFlag">Partially live: historical appreciation and current mortgage rate are real (FHFA/FRED). Home price, permits, demographics, income, and affordability index are pending — shown as "Pending" below until a data source is connected.</div>
+  <!-- REMINDER: this banner is a snapshot of what's live as of 2026-08-01.
+       Update it (and re-check what falls out of the "Still Building This
+       Out" list in lookupMarket()) once CENSUS_API_KEY is set - income
+       and homeowner/renter split go live then, permits/demographics/
+       affordability index/price/listings/forecast do not (see
+       netlify/functions/market-data.js for why each one is still gated). -->
+  <div class="mock-flag" id="statusFlag">Partially live: historical appreciation and current mortgage rate are real (FHFA/FRED). Home price, permits, demographics, income, homeowner/renter split, and affordability index are pending — shown under "Still Building This Out" below until a data source is connected.</div>
 
   <h1>What's My <span>Market Like?</span></h1>
   <hr class="primary">
@@ -156,8 +162,8 @@
 
   <div class="cta-block" id="ctaBlock">
     <p class="cta-label">Next Step</p>
-    <h2 class="cta-head">Want This <span>Kept Current?</span></h2>
-    <p class="cta-copy">Market data shifts monthly. A Steward can send you an updated snapshot whenever you're ready to move.</p>
+    <h2 class="cta-head">Want The <span>Full Picture?</span></h2>
+    <p class="cta-copy">We're still wiring up a few data sources. A Steward can pull the rest by hand right now if you don't want to wait.</p>
     <form id="marketForm" name="market-data-lead" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return handleSubmit(event)">
       <input type="hidden" name="form-name" value="market-data-lead">
       <div style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></div>
@@ -189,17 +195,6 @@
 // ---------------------------------------------------------------------
 function formatCurrency(n) {
   return '$' + Math.round(n).toLocaleString('en-US');
-}
-
-function pendingCard(title, note) {
-  return '<div class="section-card">' +
-    '<p class="section-title">' + title + '</p>' +
-    '<p class="conditional-note">' + (note || 'Pending — this data source isn\'t connected yet.') + '</p>' +
-  '</div>';
-}
-
-function pendingStatCard(label) {
-  return '<div class="stat-card"><p class="stat-label">' + label + '</p><p class="conditional-note" style="margin-top:8px;">Pending</p></div>';
 }
 
 async function lookupMarket() {
@@ -247,7 +242,7 @@ async function lookupMarket() {
       '<div class="horizon-row"><span class="horizon-label">Long-run avg/yr</span><span class="horizon-value">' + (ha.longRun != null ? ha.longRun + '%' : 'N/A') + '</span></div>' +
       (data.currentMortgageRate != null ? '<p class="conditional-note">Current 30-yr fixed rate: ' + data.currentMortgageRate + '% (live, FRED)</p>' : '') +
     '</div>'
-    : pendingCard('Historical Appreciation', 'Pending — not enough FHFA data for this county.');
+    : null;
 
   const census = data.census || {};
   const demoHtml = census.demographics ?
@@ -258,32 +253,62 @@ async function lookupMarket() {
     }).join('')
     : null;
 
+  const incomeHtml = census.medianIncome ?
+    '<div class="section-card"><p class="section-title">Median Household Income</p>' +
+      '<div class="horizon-row"><span class="horizon-label">This Area</span><span class="horizon-value">' + formatCurrency(census.medianIncome.local) + '</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">National Average</span><span class="horizon-value">' + formatCurrency(census.medianIncome.national) + '</span></div>' +
+    '</div>' : null;
+
+  const tenureHtml = census.tenure ?
+    '<div class="section-card"><p class="section-title">Homeowners &amp; Renters</p>' +
+      '<div class="horizon-row"><span class="horizon-label">Homeowners</span><span class="horizon-value">' + (census.tenure.homeowners / 1000).toFixed(0) + 'k</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">Renters</span><span class="horizon-value">' + (census.tenure.renters / 1000).toFixed(0) + 'k</span></div>' +
+    '</div>' : null;
+
+  const demoCardHtml = demoHtml ? '<div class="section-card"><p class="section-title">Demographics By Age</p>' + demoHtml + '</div>' : null;
+
+  const permitsHtml = census.permitsPerYear ?
+    '<div class="section-card"><p class="section-title">Homes Being Built</p><p class="stat-value">' + census.permitsPerYear.toLocaleString() + '</p></div>' : null;
+
+  const affordabilityHtml = census.affordabilityIndex ?
+    '<div class="section-card"><p class="section-title">Affordability Index</p><div class="index-badge-row"><div class="index-badge">' + census.affordabilityIndex + '</div></div></div>' : null;
+
+  // One honest, compact list of what's not live yet instead of a wall of
+  // separate "Pending" cards - keeps the real content (above) prominent.
+  const pendingLabels = [];
+  if (!historicalHtml) pendingLabels.push('historical appreciation');
+  if (!data.medianPrice) pendingLabels.push('median home price');
+  if (!data.medianDaysOnMarket) pendingLabels.push('days on market');
+  if (!data.forecastedAppreciation) pendingLabels.push('5-year price forecast');
+  if (!data.activeListings) pendingLabels.push('active listings');
+  if (!permitsHtml) pendingLabels.push('new homes being built');
+  if (!demoCardHtml) pendingLabels.push('demographics');
+  if (!tenureHtml) pendingLabels.push('homeowner/renter split');
+  if (!incomeHtml) pendingLabels.push('median household income');
+  if (!affordabilityHtml) pendingLabels.push('affordability index');
+
+  const pendingSummaryHtml = pendingLabels.length ?
+    '<div class="section-card">' +
+      '<p class="section-title">Still Building This Out</p>' +
+      '<p class="conditional-note">Not live yet: ' + pendingLabels.join(', ') + '. A Steward can get you real numbers on these by hand in the meantime.</p>' +
+    '</div>' : '';
+
+  const insightLine = data.medianPrice ? 'Median home price: ' + formatCurrency(data.medianPrice)
+    : (ha && ha.fiveYr != null ? 'Prices up ' + ha.fiveYr + '%/yr over the last 5 years' : 'Full report coming together — see what\'s ready below');
+
   resultsBlock.innerHTML =
     '<div class="location-head">' +
       '<p class="location-name">' + data.locationName + '</p>' +
-      '<p class="location-insight">' + (data.medianPrice ? 'Median home price: ' + formatCurrency(data.medianPrice) : 'Home price data pending') + '</p>' +
+      '<p class="location-insight">' + insightLine + '</p>' +
     '</div>' +
 
-    '<div class="stat-row">' +
-      (data.medianPrice ? '<div class="stat-card"><p class="stat-label">Median Home Price</p><p class="stat-value">' + formatCurrency(data.medianPrice) + '</p></div>' : pendingStatCard('Median Home Price')) +
-      (data.medianDaysOnMarket ? '<div class="stat-card"><p class="stat-label">Median Days On Market</p><p class="stat-value">' + data.medianDaysOnMarket + '</p></div>' : pendingStatCard('Median Days On Market')) +
-    '</div>' +
-
-    (data.forecastedAppreciation ? '' : pendingCard('Forecasted Appreciation', 'Pending — needs a vendor decision (licensed forecast data) or an in-house model; no free public substitute.')) +
-
-    historicalHtml +
-
-    (census.permitsPerYear ? '<div class="section-card"><p class="section-title">Homes Being Built</p><p class="stat-value">' + census.permitsPerYear.toLocaleString() + '</p></div>' : pendingCard('Homes Being Built', 'Pending — Census Building Permits Survey, needs a Census API key.')) +
-
-    (data.activeListings ? '' : pendingCard('Active Listings', 'Pending — Realtor.com Economic Research, access method not yet built.')) +
-
-    (demoHtml ? '<div class="section-card"><p class="section-title">Demographics By Age</p>' + demoHtml + '</div>' : pendingCard('Demographics By Age', 'Pending — Census ACS, needs a Census API key.')) +
-
-    (census.tenure ? '<div class="section-card"><p class="section-title">Homeowners &amp; Renters</p><div class="horizon-row"><span class="horizon-label">Homeowners</span><span class="horizon-value">' + (census.tenure.homeowners / 1000).toFixed(0) + 'k</span></div><div class="horizon-row"><span class="horizon-label">Renters</span><span class="horizon-value">' + (census.tenure.renters / 1000).toFixed(0) + 'k</span></div></div>' : pendingCard('Homeowners &amp; Renters', 'Pending — Census ACS, needs a Census API key.')) +
-
-    (census.medianIncome ? '<div class="section-card"><p class="section-title">Median Household Income</p><div class="horizon-row"><span class="horizon-label">This Area</span><span class="horizon-value">' + formatCurrency(census.medianIncome.local) + '</span></div></div>' : pendingCard('Median Household Income', 'Pending — Census ACS / BLS, needs a Census API key.')) +
-
-    (census.affordabilityIndex ? '<div class="section-card"><p class="section-title">Affordability Index</p><div class="index-badge-row"><div class="index-badge">' + census.affordabilityIndex + '</div></div></div>' : pendingCard('Affordability Index', 'Pending — depends on median income; needs a Census API key.'));
+    (historicalHtml || '') +
+    (incomeHtml || '') +
+    (tenureHtml || '') +
+    (demoCardHtml || '') +
+    (permitsHtml || '') +
+    (affordabilityHtml || '') +
+    pendingSummaryHtml;
 
   resultsBlock.style.display = 'block';
   document.getElementById('ctaBlock').style.display = 'block';
