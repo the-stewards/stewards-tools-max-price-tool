@@ -7,10 +7,9 @@
   Native <details>/<summary> — no JavaScript, survives BD's script-stripping.
   Same pattern as the Second Look tool's embed snippet.
 
-  Height measured (not guessed): driven via injected JS at 375px width.
-  Blank and fully-filled states both measure 2432px — nothing expands
-  dynamically anymore since this is a lead-capture form, not a
-  calculator with results — sized to 2500px with margin.
+  Height measured (not guessed): driven via injected JS at 375px width,
+  re-measured after the UX pass added hint text and a section divider —
+  2626px, sized to 2700px with margin.
 
   If Safari shows a stray disclosure triangle, add:
     summary::-webkit-details-marker { display: none; }
@@ -76,7 +75,7 @@
 
   <iframe
     src="https://stewards-tools-max-price-tool.netlify.app/down-payment-finder.html"
-    style="width:100%; border:none; display:block; height:2500px;"
+    style="width:100%; border:none; display:block; height:2700px;"
     scrolling="auto"
     loading="lazy"
     title="Find Your Down Payment Match">
