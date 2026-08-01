@@ -5,6 +5,12 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# esbuild only bundles traced JS - the zip-county lookup is read at
+# runtime via fs.readFileSync with a dynamic path, so it has to be
+# declared explicitly or the deployed function 502s with ENOENT.
+[functions."market-data"]
+  included_files = ["netlify/functions/data/zip-county-lookup.json"]
+
 # Daily purge of form submissions older than 30 days (Ryan's retention
 # call, 2026-08-01) - see purge-old-submissions.js.
 [functions."purge-old-submissions"]
