@@ -349,34 +349,51 @@ async function handleSecondLookLead(data) {
 }
 
 // ---------------------------------------------------------------------
-// Down Payment Help Finder — confirmation-only, matching the loan-estimate
-// checker pattern. Results shown to the user are currently sample/mock
-// data (pending real DPA data source integration), so there are no real
-// program figures worth transmitting in an email yet. Revisit once the
-// matching logic is wired to a real data source.
+// Down Payment Match — rebuilt from an instant-results calculator (mock
+// data) into a manual-match request, matching the Second Look pattern.
+// No client-side matching happens anymore, so the internal email now
+// carries the full submission — a Steward needs these details to
+// actually go find the real program, unlike the old confirmation-only
+// version which had nothing real worth sending.
 // ---------------------------------------------------------------------
 async function handleDownPaymentLead(data) {
   const email = data.email;
   if (!email) return;
 
+  const statusLabels = { veteran: 'Veteran/Military', teacher: 'Teacher', firstresponder: 'First Responder' };
+  const statuses = (data.statuses || '')
+    .split(',')
+    .map(function(s) { return s.trim(); })
+    .filter(Boolean)
+    .map(function(s) { return statusLabels[s] || s; })
+    .join(', ');
+
   const consumerHtml = `
     <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
-      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">A Steward Will Follow Up</h1>
-      <p style="font-size:16px; line-height:1.7;">Thanks for checking out down payment assistance options. A Steward will follow up to confirm what you actually qualify for and help stack the right programs together.</p>
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">We're On It</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks, ${esc(data.firstName || '')} — a Steward is matching you to down payment programs now. Expect to hear back within 24 hours, usually sooner.</p>
       <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${LEGAL_DISCLAIMER}</p>
     </div>
   `;
 
   const internalHtml = `
-    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
-      <p><strong>New Down Payment Finder lead:</strong> ${email}</p>
-      <p>No further detail transmitted by design — this tool's lead capture is confirmation-only, and current results are sample/mock data pending real DPA data source integration.</p>
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333; line-height:1.8;">
+      <p><strong>New Down Payment Match lead — find a program within 24 hours</strong></p>
+      <p>Name: ${esc(data.firstName || '')}</p>
+      <p>Email: ${esc(email)}</p>
+      <p>Household Income: ${data.income ? formatMoney(data.income) : ''}</p>
+      <p>Zip Code: ${esc(data.zip || '')}</p>
+      <p>Household Size: ${esc(data.householdSize || 'Not provided')}</p>
+      <p>First-Time Buyer: ${data.firstTime === 'yes' ? 'Yes' : 'No'}</p>
+      <p>Veteran/Teacher/First Responder: ${statuses || 'None'}</p>
+      <p>Target Purchase Price: ${data.targetPrice ? formatMoney(data.targetPrice) : 'Not provided'}</p>
+      <p>Credit Score Range: ${data.creditScore ? esc(data.creditScore) + '+' : 'Not provided'}</p>
     </div>
   `;
 
   await Promise.all([
-    sendEmail(email, 'A Steward Will Follow Up', consumerHtml),
-    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Down Payment Finder Lead: ${email}`, internalHtml) : Promise.resolve()
+    sendEmail(email, "We're On It — Your Down Payment Match", consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Down Payment Match Lead: ${data.firstName || email}`, internalHtml) : Promise.resolve()
   ]);
 }
 
