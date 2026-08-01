@@ -58,6 +58,9 @@ exports.handler = async (event) => {
       case 'down-payment-lead':
         await handleDownPaymentLead(data);
         break;
+      case 'market-data-lead':
+        await handleMarketDataLead(data);
+        break;
       default:
         console.error('Unrecognized form_name on submission:', formName);
         return { statusCode: 200, body: 'Unrecognized form, no action taken' };
@@ -397,6 +400,38 @@ async function handleDownPaymentLead(data) {
   await Promise.all([
     sendEmail(email, "We're On It — Your Down Payment Match", consumerHtml),
     INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Down Payment Match Lead: ${data.firstName || email}`, internalHtml) : Promise.resolve()
+  ]);
+}
+
+// ---------------------------------------------------------------------
+// Market Data Tool — confirmation-only, same reasoning as the Down Payment
+// Finder pre-pivot: current results are mock/sample data pending real
+// per-metric data source integration (see build handoff), so there's
+// nothing real worth transmitting in an email yet. Revisit once
+// getMarketData() is wired to real sources.
+// ---------------------------------------------------------------------
+async function handleMarketDataLead(data) {
+  const email = data.email;
+  if (!email) return;
+
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">A Steward Will Follow Up</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks for checking out the local market snapshot. A Steward will follow up with a current, verified read on the area.</p>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">${LEGAL_DISCLAIMER}</p>
+    </div>
+  `;
+
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333;">
+      <p><strong>New Market Data Tool lead:</strong> ${esc(email)}</p>
+      <p>No further detail transmitted by design — this tool's lead capture is confirmation-only, and current results are sample/mock data pending real data source integration.</p>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail(email, 'A Steward Will Follow Up', consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Market Data Tool Lead: ${esc(email)}`, internalHtml) : Promise.resolve()
   ]);
 }
 
