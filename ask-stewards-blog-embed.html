@@ -13,8 +13,16 @@
   Same pattern as every other tool's embed snippet.
 
   Height measured (not guessed) via injected JS at 375px width, form
-  fully filled, right before submit - 1300px actual, sized to 1350px
-  with margin.
+  fully filled, right before submit - 1404px actual (re-measured after
+  the 2026-08-01 UX pass added a taller textarea + trust line), sized
+  to 1450px with margin.
+
+  NOTE: the tool's textarea has `autofocus`. Couldn't confirm in
+  testing whether it actually fires once loaded inside this iframe -
+  autofocus behavior in iframes can cause an unexpected scroll-jump
+  when a visitor expands this <details> block. Watch for that on a
+  real device; strip the `autofocus` attribute in ask-stewards.html
+  if it turns out to be disruptive.
 
   If Safari shows a stray disclosure triangle, add:
     summary::-webkit-details-marker { display: none; }
@@ -80,7 +88,7 @@
 
   <iframe
     src="https://stewards-tools-max-price-tool.netlify.app/ask-stewards.html"
-    style="width:100%; border:none; display:block; height:1350px;"
+    style="width:100%; border:none; display:block; height:1450px;"
     scrolling="auto"
     loading="lazy"
     title="Ask The Stewards">
