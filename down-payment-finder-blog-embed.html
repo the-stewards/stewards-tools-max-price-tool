@@ -7,12 +7,10 @@
   Native <details>/<summary> — no JavaScript, survives BD's script-stripping.
   Same pattern as the Second Look tool's embed snippet.
 
-  Height measured (not guessed): driven via injected JS at 375px width
-  through the tallest realistic state (3 program cards — the max that can
-  show simultaneously, since the bond and FHA-paired sample programs use
-  mutually exclusive credit-score gates), giving 3644px — sized to 3700px
-  with margin, biased toward the ceiling per the standing methodology
-  since nobody sees the iframe until they've already clicked to open it.
+  Height measured (not guessed): driven via injected JS at 375px width.
+  Blank and fully-filled states both measure 2432px — nothing expands
+  dynamically anymore since this is a lead-capture form, not a
+  calculator with results — sized to 2500px with margin.
 
   If Safari shows a stray disclosure triangle, add:
     summary::-webkit-details-marker { display: none; }
@@ -38,7 +36,7 @@
       text-transform: uppercase;
       color: #f76732;
       margin-bottom: 14px;
-    ">Free Interactive Tool</span>
+    ">Free Down Payment Match</span>
 
     <span style="
       display: block;
@@ -50,7 +48,7 @@
       color: #fffae8;
       margin-bottom: 14px;
       line-height: 1.15;
-    ">Find Down Payment Help</span>
+    ">Find Your Down Payment Match</span>
 
     <span style="
       display: block;
@@ -60,7 +58,7 @@
       color: rgba(255,250,232,0.75);
       line-height: 1.6;
       margin-bottom: 28px;
-    ">Grants and bond programs can knock thousands off what you need to bring to closing.</span>
+    ">Skip the search. A Steward finds the programs you actually qualify for and gets back to you within 24 hours.</span>
 
     <span style="
       display: inline-block;
@@ -73,14 +71,14 @@
       text-transform: uppercase;
       padding: 18px 32px;
       border-radius: 2px;
-    ">Find My Programs &rarr;</span>
+    ">Find My Match &rarr;</span>
   </summary>
 
   <iframe
     src="https://stewards-tools-max-price-tool.netlify.app/down-payment-finder.html"
-    style="width:100%; border:none; display:block; height:3700px;"
+    style="width:100%; border:none; display:block; height:2500px;"
     scrolling="auto"
     loading="lazy"
-    title="Find Down Payment Help">
+    title="Find Your Down Payment Match">
   </iframe>
 </details>
