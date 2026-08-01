@@ -61,6 +61,9 @@ exports.handler = async (event) => {
       case 'market-data-lead':
         await handleMarketDataLead(data);
         break;
+      case 'ask-stewards-lead':
+        await handleAskStewardsLead(data);
+        break;
       default:
         console.error('Unrecognized form_name on submission:', formName);
         return { statusCode: 200, body: 'Unrecognized form, no action taken' };
@@ -432,6 +435,44 @@ async function handleMarketDataLead(data) {
   await Promise.all([
     sendEmail(email, 'A Steward Will Follow Up', consumerHtml),
     INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Market Data Tool Lead: ${esc(email)}`, internalHtml) : Promise.resolve()
+  ]);
+}
+
+// ---------------------------------------------------------------------
+// Ask The Stewards — topic-agnostic fallback lead magnet. Unlike Down
+// Payment Match and Market Snapshot (confirmation-only, since their
+// results are currently mock data), this form's whole purpose is
+// routing a real, user-written question to a human - the question
+// itself is genuine user content, not mock/placeholder output, so the
+// internal email carries it in full.
+// ---------------------------------------------------------------------
+async function handleAskStewardsLead(data) {
+  const email = data.email;
+  if (!email) return;
+
+  const consumerHtml = `
+    <div style="font-family:Georgia,serif; color:#403d3d; max-width:520px; margin:0 auto;">
+      <h1 style="font-family:Arial,sans-serif; font-size:22px; text-transform:uppercase;">A Steward Is On It</h1>
+      <p style="font-size:16px; line-height:1.7;">Thanks, ${esc(data.name || '')} — your question is in. Expect a real, personal answer, usually within a business day.</p>
+      <p style="font-size:12px; color:#999; line-height:1.6; margin-top:24px;">This is a request for a personal response from a licensed loan officer, not automated advice, a loan approval, pre-qualification, offer of credit, or commitment to lend. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.</p>
+    </div>
+  `;
+
+  const internalHtml = `
+    <div style="font-family:Arial,sans-serif; font-size:14px; color:#333; line-height:1.8;">
+      <p><strong>New "Ask The Stewards" question</strong></p>
+      <p>Name: ${esc(data.name || '')}</p>
+      <p>Email: ${esc(email)}</p>
+      <p>Phone: ${esc(data.phone || 'Not provided')}</p>
+      <div style="margin-top:12px; padding:14px; background:#f7f7f7; border-left:3px solid #f76732;">
+        <p style="margin:0; white-space:pre-wrap;">${esc(data.question || '')}</p>
+      </div>
+    </div>
+  `;
+
+  await Promise.all([
+    sendEmail(email, "A Steward Is On It", consumerHtml),
+    INTERNAL_NOTIFY_EMAIL ? sendEmail(INTERNAL_NOTIFY_EMAIL, `Ask The Stewards: ${esc(data.name || email)}`, internalHtml) : Promise.resolve()
   ]);
 }
 

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ask The Stewards | The Stewards</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;700&family=Frank+Ruhl+Libre:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; background: #fffae8; font-family: 'Frank Ruhl Libre', serif; color: #555; }
+  .wrap { max-width: 600px; margin: 0 auto; padding: 40px 24px 60px 24px; }
+  h1 {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: clamp(30px, 6.5vw, 44px); line-height: 1.05; letter-spacing: -0.01em;
+    text-transform: uppercase; color: #403d3d; margin: 0 0 16px 0;
+  }
+  h1 span { color: #f76732; }
+  hr.primary { border: none; border-top: 2px solid #f76732; width: 60px; margin: 0 0 20px 0; }
+  .deck { font-size: 18px; font-weight: 300; line-height: 1.75; color: #555; margin: 0 0 32px 0; max-width: 520px; }
+  .field { margin-bottom: 20px; }
+  label {
+    display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+    font-size: 18px; letter-spacing: 0.05em; text-transform: uppercase; color: #403d3d; margin-bottom: 4px;
+  }
+  .hint { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 15px; color: #999; margin: 0 0 10px 0; }
+  input[type=text], input[type=email], input[type=tel], textarea {
+    width: 100%; font-family: 'Frank Ruhl Libre', serif; font-size: 20px; font-weight: 400;
+    color: #403d3d; background: #ffffff; border: 1px solid #dddddd; border-radius: 3px;
+    padding: 16px; outline: none; min-height: 56px;
+  }
+  textarea { min-height: 140px; font-size: 18px; resize: vertical; }
+  input:focus, textarea:focus { border-color: #f76732; }
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
+
+  .submit-btn {
+    width: 100%; background: #403d3d; color: #fffae8; font-family: 'Barlow Condensed', sans-serif;
+    font-weight: 700; font-size: 22px; letter-spacing: 0.15em; text-transform: uppercase; padding: 22px;
+    border: none; border-radius: 2px; cursor: pointer; margin-top: 12px; min-height: 64px;
+  }
+  .submit-btn:hover { background: #2f2d2d; }
+  .submit-btn:disabled { background: #999; cursor: not-allowed; }
+
+  .confirm-block {
+    display: none; margin-top: 20px; background: #403d3d; border-left: 4px solid #f76732;
+    border-radius: 0 3px 3px 0; padding: 36px 32px; text-align: center;
+  }
+  .confirm-label {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 16px;
+    letter-spacing: 0.4em; text-transform: uppercase; color: #f76732; margin: 0 0 10px 0;
+  }
+  .confirm-head {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 30px;
+    text-transform: uppercase; color: #fffae8; margin: 0 0 14px 0; line-height: 1.1;
+  }
+  .confirm-copy {
+    font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 16px;
+    color: rgba(255,250,232,0.8); line-height: 1.75; margin: 0;
+  }
+
+  .legal { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 16px; color: #999; line-height: 1.75; margin-top: 32px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Ask The <span>Stewards</span></h1>
+  <hr class="primary">
+  <p class="deck">Whatever's actually on your mind about buying, refinancing, or just figuring out where you stand — ask it here. A Steward reads and answers every one personally, no bot, no script.</p>
+
+  <form id="askForm" name="ask-stewards-lead" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return handleSubmit(event)">
+    <input type="hidden" name="form-name" value="ask-stewards-lead">
+    <div style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></div>
+
+    <div class="field">
+      <label for="question">Your Question</label>
+      <p class="hint">No question is too basic or too specific.</p>
+      <textarea id="question" name="question" required></textarea>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="name">Name</label>
+        <input type="text" id="name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="phone">Phone</label>
+      <p class="hint">Optional — only if you'd rather talk it through.</p>
+      <input type="tel" id="phone" name="phone">
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Send My Question</button>
+  </form>
+
+  <div class="confirm-block" id="confirmBlock">
+    <p class="confirm-label">Got It</p>
+    <h2 class="confirm-head">A Steward Is On It</h2>
+    <p class="confirm-copy">Expect a real, personal answer — usually within a business day.</p>
+  </div>
+
+  <p class="legal">
+    This is a request for a personal response from a licensed loan officer, not automated advice, a loan approval, pre-qualification, offer of credit, or commitment to lend. Ryan Miracle, Senior Loan Officer, NMLS #497698. Chris Beal, Loan Officer, NMLS #514071. Ruoff Mortgage, 8101 N High St Suite 300, Columbus OH 43235, NMLS #141868. Equal Housing Opportunity.
+  </p>
+
+</div>
+
+<script>
+function encodeFormData(form) {
+  const data = new FormData(form);
+  return new URLSearchParams(data).toString();
+}
+
+function handleSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('askForm');
+  const submitBtn = document.getElementById('submitBtn');
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Sending…';
+
+  fetch('/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: encodeFormData(form)
+  })
+    .then(function(res) {
+      if (!res.ok) throw new Error('Submission failed');
+      form.style.display = 'none';
+      document.getElementById('confirmBlock').style.display = 'block';
+      document.getElementById('confirmBlock').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    })
+    .catch(function(err) {
+      console.error('Form submission error:', err);
+      alert('Something went wrong sending that — try again in a moment.');
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Send My Question';
+    });
+
+  return false;
+}
+</script>
+
+</body>
+</html>

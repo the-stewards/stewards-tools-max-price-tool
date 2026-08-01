@@ -1,0 +1,87 @@
+<!--
+  Ask The Stewards — blog post embed snippet (TOPIC-AGNOSTIC FALLBACK)
+  ------------------------------------------------------------------------
+  Use this on any blog post where none of the other tools (Refi,
+  Loan Estimate/Second Look, Down Payment Finder, Market Data) are a
+  natural topical fit. Copy is deliberately generic — it should read
+  correctly attached to almost any mortgage/real estate post.
+
+  Goes IN THE BLOG POST content editor. The tool (ask-stewards.html) is
+  hosted separately and lives inside the iframe below.
+
+  Native <details>/<summary> — no JavaScript, survives BD's script-stripping.
+  Same pattern as every other tool's embed snippet.
+
+  Height measured (not guessed) via injected JS at 375px width, form
+  fully filled, right before submit.
+
+  If Safari shows a stray disclosure triangle, add:
+    summary::-webkit-details-marker { display: none; }
+-->
+
+<details style="margin: 24px 0; border: none;">
+  <summary style="
+    cursor: pointer;
+    list-style: none;
+    display: block;
+    background: #403d3d;
+    border-left: 4px solid #f76732;
+    border-radius: 0 4px 4px 0;
+    padding: 40px 32px;
+    text-align: center;
+  ">
+    <span style="
+      display: block;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 15px;
+      letter-spacing: 0.3em;
+      text-transform: uppercase;
+      color: #f76732;
+      margin-bottom: 14px;
+    ">Ask A Real Person</span>
+
+    <span style="
+      display: block;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 28px;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+      color: #fffae8;
+      margin-bottom: 14px;
+      line-height: 1.15;
+    ">Have A Mortgage Question?</span>
+
+    <span style="
+      display: block;
+      font-family: Georgia, serif;
+      font-weight: 300;
+      font-size: 17px;
+      color: rgba(255,250,232,0.75);
+      line-height: 1.6;
+      margin-bottom: 28px;
+    ">Ask it here. A Steward reads and answers every one personally — no bot, no script.</span>
+
+    <span style="
+      display: inline-block;
+      background: #f76732;
+      color: #fffae8;
+      font-family: 'Barlow Condensed', Arial, sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 18px 32px;
+      border-radius: 2px;
+    ">Ask The Stewards &rarr;</span>
+  </summary>
+
+  <iframe
+    src="https://stewards-tools-max-price-tool.netlify.app/ask-stewards.html"
+    style="width:100%; border:none; display:block; height:900px;"
+    scrolling="auto"
+    loading="lazy"
+    title="Ask The Stewards">
+  </iframe>
+</details>
