@@ -28,7 +28,7 @@
     color: #403d3d; background: #ffffff; border: 1px solid #dddddd; border-radius: 3px;
     padding: 16px; outline: none; min-height: 56px;
   }
-  textarea { min-height: 140px; font-size: 18px; resize: vertical; }
+  textarea { min-height: 180px; font-size: 18px; resize: vertical; }
   input:focus, textarea:focus { border-color: #f76732; }
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
@@ -40,6 +40,10 @@
   }
   .submit-btn:hover { background: #2f2d2d; }
   .submit-btn:disabled { background: #999; cursor: not-allowed; }
+  .micro {
+    font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 15px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: #888; margin: 14px 0 0 0; text-align: center;
+  }
 
   .confirm-block {
     display: none; margin-top: 20px; background: #403d3d; border-left: 4px solid #f76732;
@@ -66,7 +70,7 @@
 
   <h1>Ask The <span>Stewards</span></h1>
   <hr class="primary">
-  <p class="deck">Whatever's actually on your mind about buying, refinancing, or just figuring out where you stand — ask it here. A Steward reads and answers every one personally, no bot, no script.</p>
+  <p class="deck">Whatever's actually on your mind about buying, refinancing, or just figuring out where you stand — ask it here. A Steward reads and answers every one personally, no bot, no script — usually within a business day.</p>
 
   <form id="askForm" name="ask-stewards-lead" data-netlify="true" netlify-honeypot="bot-field" onsubmit="return handleSubmit(event)">
     <input type="hidden" name="form-name" value="ask-stewards-lead">
@@ -75,7 +79,7 @@
     <div class="field">
       <label for="question">Your Question</label>
       <p class="hint">No question is too basic or too specific.</p>
-      <textarea id="question" name="question" required></textarea>
+      <textarea id="question" name="question" required autofocus></textarea>
     </div>
 
     <div class="two-col">
@@ -96,12 +100,13 @@
     </div>
 
     <button type="submit" class="submit-btn" id="submitBtn">Send My Question</button>
+    <p class="micro">No cost. No obligation.</p>
   </form>
 
   <div class="confirm-block" id="confirmBlock">
     <p class="confirm-label">Got It</p>
     <h2 class="confirm-head">A Steward Is On It</h2>
-    <p class="confirm-copy">Expect a real, personal answer — usually within a business day.</p>
+    <p class="confirm-copy">Expect a real, personal answer by email — usually within a business day. Left a number? A Steward may call instead if that's easier.</p>
   </div>
 
   <p class="legal">
