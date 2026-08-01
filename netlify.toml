@@ -5,6 +5,11 @@
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
+# Daily purge of form submissions older than 30 days (Ryan's retention
+# call, 2026-08-01) - see purge-old-submissions.js.
+[functions."purge-old-submissions"]
+  schedule = "@daily"
+
 # These are embeddable widgets, not destination pages — never index them,
 # and always allow framing (opposite of the locked-down internal portals).
 [[headers]]
