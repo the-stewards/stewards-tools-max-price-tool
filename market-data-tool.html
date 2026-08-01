@@ -159,7 +159,7 @@
        and homeowner/renter split go live then, permits/demographics/
        affordability index/price/listings/forecast do not (see
        netlify/functions/market-data.js for why each one is still gated). -->
-  <div class="mock-flag" id="statusFlag">Partially live: historical appreciation and current mortgage rate are real (FHFA/FRED). Home price, permits, demographics, income, homeowner/renter split, and affordability index are pending — shown under "Still Building This Out" below until a data source is connected.</div>
+  <div class="mock-flag" id="statusFlag">Partially live: historical appreciation is real (FHFA). Home price, permits, demographics, income, homeowner/renter split, and affordability index are pending — shown under "Still Building This Out" below until a data source is connected.</div>
 
   <h1>What's My <span>Market Like?</span></h1>
   <hr class="primary">
@@ -197,8 +197,11 @@
 // ---------------------------------------------------------------------
 // Real backend: /.netlify/functions/market-data?zip=XXXXX
 //
-// Live as of 2026-08-01: historicalAppreciation (FHFA HPI via FRED),
-// currentMortgageRate (FRED). Everything under `census` is null with
+// Live as of 2026-08-01: historicalAppreciation (FHFA HPI via FRED).
+// Current mortgage rate was removed entirely (2026-08-01, Ryan's call) -
+// displaying a specific rate risks Reg Z "trigger term" disclosure
+// territory for a licensed loan officer's tool, not worth it for a
+// display-only stat. Everything under `census` is null with
 // `census.pending: true` until CENSUS_API_KEY is set server-side —
 // rendered as "Pending" below rather than fabricated. medianPrice,
 // medianDaysOnMarket, activeListings, forecastedAppreciation are also
@@ -298,7 +301,6 @@ async function lookupMarket() {
   }
 
   const ha = data.historicalAppreciation;
-  const rate = data.currentMortgageRate;
   const historicalHtml = ha ?
     '<div class="section-card">' +
       '<p class="section-title">Historical Appreciation</p>' +
@@ -309,16 +311,6 @@ async function lookupMarket() {
       '<div class="horizon-row"><span class="horizon-label">Long-run average (since ' + ha.longRunSinceYear + ')</span><span class="horizon-value">' + (ha.longRun != null ? ha.longRun + '%' : 'N/A') + '</span></div>' +
       '<p class="plain-copy">' + appreciationSentence(ha.fiveYr) + '</p>' +
       '<p class="cite">Source: FHFA House Price Index (via FRED), county-level, as of ' + ha.asOfYear + '.</p>' +
-    '</div>'
-    : null;
-
-  const rateHtml = rate ?
-    '<div class="section-card">' +
-      '<p class="section-title">Current Mortgage Rate</p>' +
-      '<p class="plain-copy">The going rate on a 30-year home loan right now — this drives your monthly payment more than almost anything else.</p>' +
-      '<p class="stat-value" style="font-size:30px;">' + rate.current + '%</p>' +
-      buildRangeMeter(rate.current, rate.twelveMoLow, rate.twelveMoHigh, rate.twelveMoLow + '% (12mo low)', rate.twelveMoHigh + '% (12mo high)') +
-      '<p class="cite">Source: Freddie Mac PMMS (via FRED).</p>' +
     '</div>'
     : null;
 
@@ -366,7 +358,6 @@ async function lookupMarket() {
   // separate "Pending" cards - keeps the real content (above) prominent.
   const pendingLabels = [];
   if (!historicalHtml) pendingLabels.push('historical appreciation');
-  if (!rateHtml) pendingLabels.push('current mortgage rate');
   if (!data.medianPrice) pendingLabels.push('median home price');
   if (!data.medianDaysOnMarket) pendingLabels.push('days on market');
   if (!data.forecastedAppreciation) pendingLabels.push('5-year price forecast');
@@ -393,7 +384,6 @@ async function lookupMarket() {
     '</div>' +
 
     (historicalHtml || '') +
-    (rateHtml || '') +
     (incomeHtml || '') +
     (tenureHtml || '') +
     (demoCardHtml || '') +

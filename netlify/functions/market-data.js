@@ -10,8 +10,16 @@
 //     pulled via FRED's mirror series ATNHPIUS{countyFips}A rather than
 //     scraping FHFA's own CSV catalog directly - confirmed working
 //     against FRED's real API response, not assumed)
-//   - currentMortgageRate (FRED MORTGAGE30US, used by the affordability
-//     index once income data is live)
+//
+// REMOVED (2026-08-01, Ryan's call): current mortgage rate. A licensed
+// loan officer's tool displaying a specific rate figure can read as an
+// advertisement of credit terms, which drags in Reg Z "trigger term"
+// disclosure requirements (APR, loan terms, etc.) - not worth wading
+// into for a display-only stat. FRED_API_KEY stays wired for
+// historicalAppreciation, which has no such issue (it's a valuation
+// index, not a rate). affordabilityIndex's originally-planned NAR-style
+// methodology (income + rate + price) no longer has a rate input -
+// needs a revised approach before it's built, flagged below.
 //
 // CENSUS — CODE-COMPLETE, GATED ON CENSUS_API_KEY (2026-08-01):
 //   Confirmed 2026-08-01 that Census's keyless testing tier is gone —
@@ -40,10 +48,11 @@
 //   - permitsPerYear — Census's Building Permits Survey is a different,
 //     less-familiar timeseries API (not the ACS pattern above). Endpoint
 //     shape not confirmed; needs its own research pass.
-//   - affordabilityIndex — needs income (about to be live) AND
-//     medianPrice (Tier 2, not built — see below). Getting the Census
-//     key does NOT unblock this one by itself; flagging so that's not
-//     forgotten when the key lands and this still shows "Pending."
+//   - affordabilityIndex — originally planned as income + rate + price;
+//     rate is gone (see above) and price is still Tier 2/not built, so
+//     this needs a revised methodology (income + price only, or some
+//     other approach) before it's buildable at all - not just waiting
+//     on the Census key. Flagging so that's not forgotten.
 //
 // STILL MOCK (Tier 2/3, not started):
 //   - medianPrice, medianDaysOnMarket, activeListings (Redfin/Realtor.com
@@ -124,25 +133,6 @@ async function getHistoricalAppreciation(countyFips) {
   };
 }
 
-async function getCurrentMortgageRate() {
-  // MORTGAGE30US is a weekly Freddie Mac PMMS series - 52 observations is
-  // roughly a trailing 12 months, enough to give the front end a
-  // "current rate vs. recent range" marker instead of a bare number.
-  try {
-    const obs = await fetchFredObservations('MORTGAGE30US', { limit: 52 });
-    const clean = obs.filter(o => o.value && o.value !== '.').map(o => Number(o.value));
-    if (!clean.length) return null;
-    return {
-      current: clean[0],
-      twelveMoLow: Math.min(...clean),
-      twelveMoHigh: Math.max(...clean)
-    };
-  } catch (err) {
-    console.error('Mortgage rate fetch failed:', err.message);
-    return null;
-  }
-}
-
 async function fetchCensusJson(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Census API error ${res.status}`);
@@ -220,9 +210,8 @@ exports.handler = async (event) => {
     return { statusCode: 200, body: JSON.stringify({ resolved: false }) };
   }
 
-  const [historicalAppreciation, currentMortgageRate, census] = await Promise.all([
+  const [historicalAppreciation, census] = await Promise.all([
     getHistoricalAppreciation(county.countyFips),
-    getCurrentMortgageRate(),
     getCensusData(county.countyFips)
   ]);
 
@@ -233,7 +222,6 @@ exports.handler = async (event) => {
 
     // Live
     historicalAppreciation,
-    currentMortgageRate,
 
     // Live once CENSUS_API_KEY is set (income, tenure); permits,
     // demographics, and affordabilityIndex stay pending regardless -
