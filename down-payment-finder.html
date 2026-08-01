@@ -22,6 +22,10 @@
     display: block; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
     font-size: 18px; letter-spacing: 0.05em; text-transform: uppercase; color: #403d3d; margin-bottom: 4px;
   }
+  label .optional {
+    font-family: 'Frank Ruhl Libre', serif; font-weight: 300; text-transform: none;
+    letter-spacing: normal; font-size: 14px; color: #aaa;
+  }
   .hint { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 15px; color: #999; margin: 0 0 10px 0; }
   .input-row { position: relative; }
   .prefix {
@@ -38,6 +42,8 @@
   .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
   @media (max-width: 480px) { .two-col { grid-template-columns: 1fr; } }
 
+  .section-divider { border: none; border-top: 1px solid #e5ddc4; margin: 32px 0; }
+
   .btn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
   .choice-btn {
     background: #dddddd; border: 1px solid #dddddd; border-radius: 3px; padding: 20px 14px;
@@ -45,6 +51,7 @@
     font-size: 16px; letter-spacing: 0.02em; text-transform: uppercase; line-height: 1.2; color: #666; text-align: center;
   }
   .choice-btn.active { background: #f76732; border-color: #f76732; color: #fffae8; }
+  .choice-btn:focus-visible, .multi-btn:focus-visible { outline: 2px solid #f76732; outline-offset: 2px; }
 
   .multi-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
   @media (max-width: 480px) { .multi-grid { grid-template-columns: 1fr; } }
@@ -112,17 +119,6 @@
     <input type="hidden" name="form-name" value="down-payment-lead">
     <div style="display:none;"><label>Don't fill this out: <input name="bot-field"></label></div>
 
-    <div class="two-col">
-      <div class="field">
-        <label for="firstName">First Name</label>
-        <input type="text" id="firstName" name="firstName" required>
-      </div>
-      <div class="field">
-        <label for="email">Email</label>
-        <input type="email" id="email" name="email" required>
-      </div>
-    </div>
-
     <div class="field">
       <label for="income">Gross Annual Household Income</label>
       <div class="input-row"><span class="prefix">$</span><input type="text" inputmode="numeric" id="income" name="income" placeholder="65,000" required></div>
@@ -131,11 +127,12 @@
     <div class="two-col">
       <div class="field">
         <label for="zip">Zip Code</label>
-        <p class="hint">Where you want to buy.</p>
-        <input type="text" inputmode="numeric" id="zip" name="zip" class="no-prefix" placeholder="43215" maxlength="5" required>
+        <p class="hint">Where you want to buy — most programs are county-specific.</p>
+        <input type="text" inputmode="numeric" id="zip" name="zip" class="no-prefix" placeholder="43215" maxlength="5" pattern="[0-9]{5}" required>
       </div>
       <div class="field">
-        <label for="householdSize">Household Size</label>
+        <label for="householdSize">Household Size <span class="optional">(optional)</span></label>
+        <p class="hint">Some programs adjust their income limit by household size.</p>
         <input type="text" inputmode="numeric" id="householdSize" name="householdSize" class="no-prefix" placeholder="3">
       </div>
     </div>
@@ -144,31 +141,33 @@
       <label>First-Time Homebuyer?</label>
       <p class="hint">Haven't owned a home in the last 3 years — most programs use this definition, not just "never owned."</p>
       <div class="btn-grid" id="firstTimeGrid">
-        <div class="choice-btn active" data-value="yes" onclick="setFirstTime('yes')">Yes</div>
-        <div class="choice-btn" data-value="no" onclick="setFirstTime('no')">No</div>
+        <div class="choice-btn active" data-value="yes" role="button" tabindex="0" onclick="setFirstTime('yes')" onkeydown="handleChoiceKey(event, 'yes')">Yes</div>
+        <div class="choice-btn" data-value="no" role="button" tabindex="0" onclick="setFirstTime('no')" onkeydown="handleChoiceKey(event, 'no')">No</div>
       </div>
       <input type="hidden" id="firstTimeInput" name="firstTime" value="yes">
     </div>
 
     <div class="field">
-      <label>Do Any Of These Apply?</label>
+      <label>Do Any Of These Apply? <span class="optional">(optional)</span></label>
       <p class="hint">Tap all that apply — unlocks additional programs.</p>
       <div class="multi-grid" id="statusGrid">
-        <div class="multi-btn" data-value="veteran" onclick="toggleStatus('veteran')">Veteran / Military</div>
-        <div class="multi-btn" data-value="teacher" onclick="toggleStatus('teacher')">Teacher</div>
-        <div class="multi-btn" data-value="firstresponder" onclick="toggleStatus('firstresponder')">First Responder</div>
-        <div class="multi-btn" data-value="none" onclick="toggleStatus('none')">None Of These</div>
+        <div class="multi-btn" data-value="veteran" role="button" tabindex="0" onclick="toggleStatus('veteran')" onkeydown="handleStatusKey(event, 'veteran')">Veteran / Military</div>
+        <div class="multi-btn" data-value="teacher" role="button" tabindex="0" onclick="toggleStatus('teacher')" onkeydown="handleStatusKey(event, 'teacher')">Teacher</div>
+        <div class="multi-btn" data-value="firstresponder" role="button" tabindex="0" onclick="toggleStatus('firstresponder')" onkeydown="handleStatusKey(event, 'firstresponder')">First Responder</div>
+        <div class="multi-btn" data-value="none" role="button" tabindex="0" onclick="toggleStatus('none')" onkeydown="handleStatusKey(event, 'none')">None Of These</div>
       </div>
       <input type="hidden" id="statusesInput" name="statuses" value="">
     </div>
 
     <div class="two-col">
       <div class="field">
-        <label for="targetPrice">Target Purchase Price</label>
+        <label for="targetPrice">Target Purchase Price <span class="optional">(optional)</span></label>
+        <p class="hint">Some grants only apply below a price cap.</p>
         <div class="input-row"><span class="prefix">$</span><input type="text" inputmode="numeric" id="targetPrice" name="targetPrice" placeholder="240,000"></div>
       </div>
       <div class="field">
-        <label for="creditScore">Credit Score Range</label>
+        <label for="creditScore">Credit Score Range <span class="optional">(optional)</span></label>
+        <p class="hint">Your best estimate is fine.</p>
         <select id="creditScore" name="creditScore">
           <option value="">Select one</option>
           <option value="740">740+</option>
@@ -181,7 +180,20 @@
       </div>
     </div>
 
-    <button type="submit" class="submit-btn" id="submitBtn">Find My Match</button>
+    <hr class="section-divider">
+
+    <div class="two-col">
+      <div class="field">
+        <label for="firstName">First Name</label>
+        <input type="text" id="firstName" name="firstName" required>
+      </div>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" required>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Request My Match</button>
   </form>
 
   <div class="confirm-block" id="confirmBlock">
@@ -217,6 +229,13 @@ function setFirstTime(val) {
   });
 }
 
+function handleChoiceKey(e, val) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    setFirstTime(val);
+  }
+}
+
 function toggleStatus(val) {
   if (val === 'none') {
     statusValues = [];
@@ -241,6 +260,13 @@ function toggleStatus(val) {
   document.getElementById('statusesInput').value = statusValues.join(', ');
 }
 
+function handleStatusKey(e, val) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    toggleStatus(val);
+  }
+}
+
 function encodeFormData(form) {
   const data = new FormData(form);
   return new URLSearchParams(data).toString();
@@ -250,6 +276,12 @@ function handleSubmit(e) {
   e.preventDefault();
   const form = document.getElementById('dpaForm');
   const submitBtn = document.getElementById('submitBtn');
+
+  const zip = document.getElementById('zip').value.trim();
+  if (!/^[0-9]{5}$/.test(zip)) {
+    alert('Enter a valid 5-digit zip code.');
+    return false;
+  }
 
   submitBtn.disabled = true;
   submitBtn.textContent = 'Submitting…';
@@ -269,7 +301,7 @@ function handleSubmit(e) {
       console.error('Form submission error:', err);
       alert('Something went wrong submitting that — try again in a moment.');
       submitBtn.disabled = false;
-      submitBtn.textContent = 'Find My Match';
+      submitBtn.textContent = 'Request My Match';
     });
 
   return false;

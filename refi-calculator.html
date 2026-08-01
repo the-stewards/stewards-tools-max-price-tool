@@ -293,6 +293,10 @@
     color: #666;
     text-align: center;
   }
+  .choice-btn:focus-visible {
+    outline: 2px solid #f76732;
+    outline-offset: 2px;
+  }
   .choice-btn.active {
     background: #f76732;
     border-color: #f76732;
@@ -310,10 +314,10 @@
 
   <label>What's Your Goal?</label>
   <div class="btn-grid" id="goalGrid">
-    <div class="choice-btn active" data-goal="lower_payment" onclick="setGoal('lower_payment')">Lower My<br>Payment</div>
-    <div class="choice-btn" data-goal="lower_rate" onclick="setGoal('lower_rate')">Lower My<br>Rate</div>
-    <div class="choice-btn" data-goal="payoff_faster" onclick="setGoal('payoff_faster')">Pay Off<br>Faster</div>
-    <div class="choice-btn" data-goal="cash_out" onclick="setGoal('cash_out')">Take Cash<br>Out</div>
+    <div class="choice-btn active" data-goal="lower_payment" role="button" tabindex="0" onclick="setGoal('lower_payment')" onkeydown="handleGoalKey(event, 'lower_payment')">Lower My<br>Payment</div>
+    <div class="choice-btn" data-goal="lower_rate" role="button" tabindex="0" onclick="setGoal('lower_rate')" onkeydown="handleGoalKey(event, 'lower_rate')">Lower My<br>Rate</div>
+    <div class="choice-btn" data-goal="payoff_faster" role="button" tabindex="0" onclick="setGoal('payoff_faster')" onkeydown="handleGoalKey(event, 'payoff_faster')">Pay Off<br>Faster</div>
+    <div class="choice-btn" data-goal="cash_out" role="button" tabindex="0" onclick="setGoal('cash_out')" onkeydown="handleGoalKey(event, 'cash_out')">Take Cash<br>Out</div>
   </div>
 
   <div class="field" id="cashOutField" style="display:none;">
@@ -369,8 +373,8 @@
 
   <label>New Loan Term</label>
   <div class="btn-grid term-grid" id="termGrid">
-    <div class="choice-btn active" data-term="30" onclick="setTerm('30')">30-Year<br>Fixed</div>
-    <div class="choice-btn" data-term="15" onclick="setTerm('15')">15-Year<br>Fixed</div>
+    <div class="choice-btn active" data-term="30" role="button" tabindex="0" onclick="setTerm('30')" onkeydown="handleTermKey(event, '30')">30-Year<br>Fixed</div>
+    <div class="choice-btn" data-term="15" role="button" tabindex="0" onclick="setTerm('15')" onkeydown="handleTermKey(event, '15')">15-Year<br>Fixed</div>
   </div>
 
   <div class="field">
@@ -485,6 +489,20 @@ function setTerm(term) {
   document.querySelectorAll('#termGrid .choice-btn').forEach(function(btn) {
     btn.classList.toggle('active', btn.dataset.term === term);
   });
+}
+
+function handleGoalKey(e, goal) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    setGoal(goal);
+  }
+}
+
+function handleTermKey(e, term) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    setTerm(term);
+  }
 }
 
 function autofillClosingCosts() {
