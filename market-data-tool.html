@@ -142,7 +142,7 @@
 <body>
 <div class="wrap">
 
-  <div class="mock-flag">Dev preview — showing sample data, not live figures. See build handoff for real per-metric data sources.</div>
+  <div class="mock-flag" id="statusFlag">Partially live: historical appreciation and current mortgage rate are real (FHFA/FRED). Home price, permits, demographics, income, and affordability index are pending — shown as "Pending" below until a data source is connected.</div>
 
   <h1>What's My <span>Market Like?</span></h1>
   <hr class="primary">
@@ -178,82 +178,58 @@
 
 <script>
 // ---------------------------------------------------------------------
-// MOCK MARKET DATA — replace getMarketData() with a real backend call
-// once each metric's data source is chosen. This is the single isolated
-// swap point; the rendering code below expects this exact shape back.
+// Real backend: /.netlify/functions/market-data?zip=XXXXX
 //
-// PER-METRIC SOURCING TIERS (from reverse-engineering a comparable tool):
-//
-// TIER 1 — free public data, no vendor decision needed:
-//   - medianIncome, incomeVsNational: Census ACS / BLS
-//   - permitsPerYear: Census Building Permits Survey (county level)
-//   - demographics (age brackets): Census ACS
-//   - homeownerRenterSplit: Census ACS housing tenure tables
-//   - historicalAppreciation: FHFA House Price Index (public, free)
-//
-// TIER 1.5 — free public data, but needs real calculation work:
-//   - affordabilityIndex: buildable NAR-style (ACS income + FRED rate +
-//     local median price), not sourced from one place
-//   - rentersWhoCouldAfford: calculated from ACS renter income
-//     distribution cross-referenced against local price + rate assumptions
-//
-// TIER 2 — free-ish public data, but only available as periodic exports,
-// not live/real-time (fine for a blog tool, just not instant):
-//   - medianPrice, medianDaysOnMarket: Redfin Data Center (monthly CSVs)
-//   - activeListings: Realtor.com Economic Research (monthly CSVs)
-//
-// TIER 3 — genuinely needs a vendor decision, no real public substitute:
-//   - forecastedAppreciation: proprietary predictive modeling. A firm
-//     like John Burns Research & Consulting licenses data like this;
-//     building an in-house model is the DIY alternative. Either way,
-//     this is the one metric that isn't a "just wire up a free API" job.
+// Live as of 2026-08-01: historicalAppreciation (FHFA HPI via FRED),
+// currentMortgageRate (FRED). Everything under `census` is null with
+// `census.pending: true` until CENSUS_API_KEY is set server-side —
+// rendered as "Pending" below rather than fabricated. medianPrice,
+// medianDaysOnMarket, activeListings, forecastedAppreciation are also
+// still null (Tier 2/3, not built yet) — same "Pending" treatment.
 // ---------------------------------------------------------------------
-function getMarketData(zip) {
-  // Placeholder: doesn't actually vary by zip yet. Real version resolves
-  // zip -> county/state/FIPS and pulls real numbers per the tiers above.
-  return {
-    resolved: true,
-    locationName: 'Sample City, ST ' + zip,
-    medianPrice: 341000,
-    medianDaysOnMarket: 24,
-    forecastedAppreciation: {
-      fiveYearCumulativePercent: 16.4,
-      years: [
-        { year: 1, value: 356000, pct: 4.4 },
-        { year: 2, value: 372000, pct: 9.1 },
-        { year: 3, value: 388000, pct: 13.8 },
-        { year: 4, value: 397000, pct: 16.4 }
-      ]
-    },
-    historicalAppreciation: { fiveYr: 5.4, tenYr: 5.1, longRun: 3.2 },
-    permitsPerYear: 5100,
-    permitsGeoLabel: 'County',
-    activeListings: { count: 842, momPercent: 2.1, yoyPercent: -4.3, newLast5Days: 61, coverageAvailable: true },
-    demographics: { totalPopulation: 1250000, brackets: [
-      { label: 'Under 20', value: 168000 },
-      { label: '20-39', value: 224000 },
-      { label: '40-59', value: 182000 },
-      { label: '60+', value: 139000 }
-    ]},
-    tenure: { homeowners: 710000, renters: 580000, rentersWhoCouldAfford: 146000 },
-    medianIncome: { local: 72500, national: 80610 },
-    affordabilityIndex: 118
-  };
-}
-
 function formatCurrency(n) {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
-function lookupMarket() {
+function pendingCard(title, note) {
+  return '<div class="section-card">' +
+    '<p class="section-title">' + title + '</p>' +
+    '<p class="conditional-note">' + (note || 'Pending — this data source isn\'t connected yet.') + '</p>' +
+  '</div>';
+}
+
+function pendingStatCard(label) {
+  return '<div class="stat-card"><p class="stat-label">' + label + '</p><p class="conditional-note" style="margin-top:8px;">Pending</p></div>';
+}
+
+async function lookupMarket() {
   const zip = document.getElementById('zip').value.trim();
-  if (zip.length !== 5) {
+  if (!/^[0-9]{5}$/.test(zip)) {
     alert('Enter a 5-digit zip code.');
     return;
   }
 
-  const data = getMarketData(zip);
+  const btn = document.querySelector('.calc-btn');
   const resultsBlock = document.getElementById('resultsBlock');
+  const originalBtnText = btn.textContent;
+  btn.textContent = 'Looking It Up…';
+  btn.disabled = true;
+
+  let data;
+  try {
+    const res = await fetch('/.netlify/functions/market-data?zip=' + encodeURIComponent(zip));
+    if (!res.ok) throw new Error('Request failed: ' + res.status);
+    data = await res.json();
+  } catch (err) {
+    console.error('Market data lookup failed:', err);
+    resultsBlock.innerHTML = '<div class="section-card"><p>Something went wrong pulling that data — try again in a moment.</p></div>';
+    resultsBlock.style.display = 'block';
+    btn.textContent = originalBtnText;
+    btn.disabled = false;
+    return;
+  }
+  btn.textContent = originalBtnText;
+  btn.disabled = false;
 
   if (!data.resolved) {
     resultsBlock.innerHTML = '<div class="section-card"><p>Not enough data for that location — try a nearby zip code.</p></div>';
@@ -261,99 +237,53 @@ function lookupMarket() {
     return;
   }
 
-  const maxBracket = Math.max.apply(null, data.demographics.brackets.map(function(b) { return b.value; }));
-  const demoHtml = data.demographics.brackets.map(function(b) {
-    const pct = (b.value / maxBracket) * 100;
-    return '' +
-      '<div class="bar-row">' +
-        '<div class="bar-label-row"><span>' + b.label + '</span><span>' + (b.value / 1000).toFixed(0) + 'k</span></div>' +
-        '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;"></div></div>' +
-      '</div>';
-  }).join('');
-
-  const yearHtml = data.forecastedAppreciation.years.map(function(y) {
-    return '<div class="appreciation-year"><div class="yr">Yr ' + y.year + '</div><div class="val">' + formatCurrency(y.value) + '<br>+' + y.pct + '%</div></div>';
-  }).join('');
-
-  const activeListingsHtml = data.activeListings.coverageAvailable ?
+  const ha = data.historicalAppreciation;
+  const historicalHtml = ha ?
     '<div class="section-card">' +
-      '<p class="section-title">Active Listings</p>' +
-      '<p class="section-source">Source tier 2 — Realtor.com Economic Research (monthly export)</p>' +
-      '<div class="stat-row">' +
-        '<div class="stat-card"><p class="stat-label">Active Listings</p><p class="stat-value">' + data.activeListings.count.toLocaleString() + '</p></div>' +
-        '<div class="stat-card"><p class="stat-label">New Last 5 Days</p><p class="stat-value">' + data.activeListings.newLast5Days + '</p></div>' +
-      '</div>' +
-      '<p class="conditional-note">Month-over-month: ' + (data.activeListings.momPercent >= 0 ? '+' : '') + data.activeListings.momPercent + '% · Year-over-year: ' + (data.activeListings.yoyPercent >= 0 ? '+' : '') + data.activeListings.yoyPercent + '%</p>' +
+      '<p class="section-title">Historical Appreciation</p>' +
+      '<p class="section-source">Live — FHFA House Price Index via FRED, as of ' + ha.asOfYear + '</p>' +
+      '<div class="horizon-row"><span class="horizon-label">5 yr avg/yr</span><span class="horizon-value">' + (ha.fiveYr != null ? ha.fiveYr + '%' : 'N/A') + '</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">10 yr avg/yr</span><span class="horizon-value">' + (ha.tenYr != null ? ha.tenYr + '%' : 'N/A') + '</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">Long-run avg/yr</span><span class="horizon-value">' + (ha.longRun != null ? ha.longRun + '%' : 'N/A') + '</span></div>' +
+      (data.currentMortgageRate != null ? '<p class="conditional-note">Current 30-yr fixed rate: ' + data.currentMortgageRate + '% (live, FRED)</p>' : '') +
     '</div>'
-    :
-    '<div class="section-card">' +
-      '<p class="section-title">Active Listings</p>' +
-      '<p class="conditional-note">Not enough listing coverage for this area to show reliably.</p>' +
-    '</div>';
+    : pendingCard('Historical Appreciation', 'Pending — not enough FHFA data for this county.');
+
+  const census = data.census || {};
+  const demoHtml = census.demographics ?
+    census.demographics.brackets.map(function(b) {
+      const maxBracket = Math.max.apply(null, census.demographics.brackets.map(function(x) { return x.value; }));
+      const pct = (b.value / maxBracket) * 100;
+      return '<div class="bar-row"><div class="bar-label-row"><span>' + b.label + '</span><span>' + (b.value / 1000).toFixed(0) + 'k</span></div><div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;"></div></div></div>';
+    }).join('')
+    : null;
 
   resultsBlock.innerHTML =
     '<div class="location-head">' +
       '<p class="location-name">' + data.locationName + '</p>' +
-      '<p class="location-insight">Median home price: ' + formatCurrency(data.medianPrice) + '</p>' +
+      '<p class="location-insight">' + (data.medianPrice ? 'Median home price: ' + formatCurrency(data.medianPrice) : 'Home price data pending') + '</p>' +
     '</div>' +
 
     '<div class="stat-row">' +
-      '<div class="stat-card"><p class="stat-label">Median Home Price</p><p class="stat-value">' + formatCurrency(data.medianPrice) + '</p></div>' +
-      '<div class="stat-card"><p class="stat-label">Median Days On Market</p><p class="stat-value">' + data.medianDaysOnMarket + '</p></div>' +
+      (data.medianPrice ? '<div class="stat-card"><p class="stat-label">Median Home Price</p><p class="stat-value">' + formatCurrency(data.medianPrice) + '</p></div>' : pendingStatCard('Median Home Price')) +
+      (data.medianDaysOnMarket ? '<div class="stat-card"><p class="stat-label">Median Days On Market</p><p class="stat-value">' + data.medianDaysOnMarket + '</p></div>' : pendingStatCard('Median Days On Market')) +
     '</div>' +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Forecasted Appreciation</p>' +
-      '<p class="section-source">Source tier 3 — needs a vendor decision (e.g. licensed forecast data) or an in-house model; no free public substitute</p>' +
-      '<p class="stat-value" style="font-size:24px;">+' + data.forecastedAppreciation.fiveYearCumulativePercent + '% <span style="font-size:14px; color:#999; font-weight:400;">cumulative, 5 yr</span></p>' +
-      '<div class="appreciation-list">' + yearHtml + '</div>' +
-    '</div>' +
+    (data.forecastedAppreciation ? '' : pendingCard('Forecasted Appreciation', 'Pending — needs a vendor decision (licensed forecast data) or an in-house model; no free public substitute.')) +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Historical Appreciation</p>' +
-      '<p class="section-source">Source tier 1 — FHFA House Price Index (public, free)</p>' +
-      '<div class="horizon-row"><span class="horizon-label">5 yr avg/yr</span><span class="horizon-value">' + data.historicalAppreciation.fiveYr + '%</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">10 yr avg/yr</span><span class="horizon-value">' + data.historicalAppreciation.tenYr + '%</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">Long-run avg/yr</span><span class="horizon-value">' + data.historicalAppreciation.longRun + '%</span></div>' +
-    '</div>' +
+    historicalHtml +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Homes Being Built</p>' +
-      '<p class="section-source">Source tier 1 — Census Building Permits Survey (' + data.permitsGeoLabel.toLowerCase() + ' level, public, free)</p>' +
-      '<p class="stat-value">' + data.permitsPerYear.toLocaleString() + '<span style="font-size:14px; color:#999; font-weight:400;"> permits/yr, ' + data.permitsGeoLabel + '</span></p>' +
-    '</div>' +
+    (census.permitsPerYear ? '<div class="section-card"><p class="section-title">Homes Being Built</p><p class="stat-value">' + census.permitsPerYear.toLocaleString() + '</p></div>' : pendingCard('Homes Being Built', 'Pending — Census Building Permits Survey, needs a Census API key.')) +
 
-    activeListingsHtml +
+    (data.activeListings ? '' : pendingCard('Active Listings', 'Pending — Realtor.com Economic Research, access method not yet built.')) +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Demographics By Age</p>' +
-      '<p class="section-source">Source tier 1 — Census ACS (based on total population of ' + (data.demographics.totalPopulation / 1000000).toFixed(2) + 'M)</p>' +
-      demoHtml +
-    '</div>' +
+    (demoHtml ? '<div class="section-card"><p class="section-title">Demographics By Age</p>' + demoHtml + '</div>' : pendingCard('Demographics By Age', 'Pending — Census ACS, needs a Census API key.')) +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Homeowners &amp; Renters</p>' +
-      '<p class="section-source">Source tier 1 (tenure split) / tier 1.5 (afford-to-buy figure, calculated) — Census ACS</p>' +
-      '<div class="horizon-row"><span class="horizon-label">Homeowners</span><span class="horizon-value">' + (data.tenure.homeowners / 1000).toFixed(0) + 'k</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">Renters</span><span class="horizon-value">' + (data.tenure.renters / 1000).toFixed(0) + 'k</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">Renters Who Could Afford To Buy</span><span class="horizon-value">' + (data.tenure.rentersWhoCouldAfford / 1000).toFixed(0) + 'k</span></div>' +
-    '</div>' +
+    (census.tenure ? '<div class="section-card"><p class="section-title">Homeowners &amp; Renters</p><div class="horizon-row"><span class="horizon-label">Homeowners</span><span class="horizon-value">' + (census.tenure.homeowners / 1000).toFixed(0) + 'k</span></div><div class="horizon-row"><span class="horizon-label">Renters</span><span class="horizon-value">' + (census.tenure.renters / 1000).toFixed(0) + 'k</span></div></div>' : pendingCard('Homeowners &amp; Renters', 'Pending — Census ACS, needs a Census API key.')) +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Median Household Income</p>' +
-      '<p class="section-source">Source tier 1 — Census ACS / BLS</p>' +
-      '<div class="horizon-row"><span class="horizon-label">This Area</span><span class="horizon-value">' + formatCurrency(data.medianIncome.local) + '</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">National Average</span><span class="horizon-value">' + formatCurrency(data.medianIncome.national) + '</span></div>' +
-    '</div>' +
+    (census.medianIncome ? '<div class="section-card"><p class="section-title">Median Household Income</p><div class="horizon-row"><span class="horizon-label">This Area</span><span class="horizon-value">' + formatCurrency(census.medianIncome.local) + '</span></div></div>' : pendingCard('Median Household Income', 'Pending — Census ACS / BLS, needs a Census API key.')) +
 
-    '<div class="section-card">' +
-      '<p class="section-title">Affordability Index</p>' +
-      '<p class="section-source">Source tier 1.5 — calculated, NAR-style methodology (ACS income + FRED rate + local price)</p>' +
-      '<div class="index-badge-row">' +
-        '<div class="index-badge">' + data.affordabilityIndex + '</div>' +
-        '<p class="index-copy">At ' + data.affordabilityIndex + ', a household earning the median income here can ' + (data.affordabilityIndex >= 100 ? 'more than afford' : 'not quite afford') + ' the median-priced home with 20% down.</p>' +
-      '</div>' +
-    '</div>';
+    (census.affordabilityIndex ? '<div class="section-card"><p class="section-title">Affordability Index</p><div class="index-badge-row"><div class="index-badge">' + census.affordabilityIndex + '</div></div></div>' : pendingCard('Affordability Index', 'Pending — depends on median income; needs a Census API key.'));
 
   resultsBlock.style.display = 'block';
   document.getElementById('ctaBlock').style.display = 'block';
