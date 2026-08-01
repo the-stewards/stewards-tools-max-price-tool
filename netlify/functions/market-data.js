@@ -116,14 +116,27 @@ async function getHistoricalAppreciation(countyFips) {
     fiveYr: fiveYrPoint ? annualizedPct(fiveYrPoint.value, latest.value, latest.year - fiveYrPoint.year) : null,
     tenYr: tenYrPoint ? annualizedPct(tenYrPoint.value, latest.value, latest.year - tenYrPoint.year) : null,
     longRun: longRunPoint ? annualizedPct(longRunPoint.value, latest.value, latest.year - longRunPoint.year) : null,
-    asOfYear: latest.year
+    asOfYear: latest.year,
+    longRunSinceYear: longRunPoint.year,
+    // Ascending by year, for the front end's sparkline - plot points, not a
+    // metric anyone reads as a number, so no rounding/formatting here.
+    series: clean.slice().reverse().map(o => ({ year: o.year, value: o.value }))
   };
 }
 
 async function getCurrentMortgageRate() {
+  // MORTGAGE30US is a weekly Freddie Mac PMMS series - 52 observations is
+  // roughly a trailing 12 months, enough to give the front end a
+  // "current rate vs. recent range" marker instead of a bare number.
   try {
-    const obs = await fetchFredObservations('MORTGAGE30US', { limit: 1 });
-    return obs.length ? Number(obs[0].value) : null;
+    const obs = await fetchFredObservations('MORTGAGE30US', { limit: 52 });
+    const clean = obs.filter(o => o.value && o.value !== '.').map(o => Number(o.value));
+    if (!clean.length) return null;
+    return {
+      current: clean[0],
+      twelveMoLow: Math.min(...clean),
+      twelveMoHigh: Math.max(...clean)
+    };
   } catch (err) {
     console.error('Mortgage rate fetch failed:', err.message);
     return null;

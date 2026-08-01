@@ -75,14 +75,6 @@
     font-family: 'Barlow Condensed', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.03em;
     text-transform: uppercase; color: #403d3d; margin: 0 0 4px 0;
   }
-  .section-source {
-    font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 13px; color: #aaa; margin: 0 0 16px 0;
-  }
-  .appreciation-list { display: flex; justify-content: space-between; gap: 8px; margin-top: 12px; }
-  .appreciation-year { text-align: center; flex: 1; }
-  .appreciation-year .yr { font-size: 13px; color: #999; font-family: 'Barlow Condensed', sans-serif; text-transform: uppercase; letter-spacing: 0.05em; }
-  .appreciation-year .val { font-size: 15px; font-weight: 500; color: #403d3d; margin-top: 4px; }
-
   .horizon-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid #f0f0f0; }
   .horizon-row:last-child { border-bottom: none; }
   .horizon-label { font-size: 15px; color: #666; }
@@ -98,13 +90,32 @@
     font-style: italic; margin-top: 8px;
   }
 
-  .index-badge-row { display: flex; align-items: center; gap: 20px; }
-  .index-badge {
-    background: #403d3d; color: #f76732; font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
-    font-size: 32px; width: 84px; height: 84px; border-radius: 50%; display: flex; align-items: center;
-    justify-content: center; flex-shrink: 0;
+  .plain-copy { font-size: 15px; font-weight: 300; line-height: 1.6; color: #555; margin: 4px 0 0 0; }
+  .cite { font-family: 'Frank Ruhl Libre', serif; font-weight: 300; font-size: 12px; color: #bbb; margin: 12px 0 0 0; }
+
+  .sparkline-wrap { margin: 12px 0 4px 0; }
+
+  .compare-bar-row { margin-bottom: 14px; }
+  .compare-bar-row:last-child { margin-bottom: 0; }
+  .compare-bar-label { display: flex; justify-content: space-between; font-size: 14px; color: #666; margin-bottom: 4px; }
+  .compare-bar-track { background: #f0f0f0; border-radius: 3px; height: 18px; overflow: hidden; }
+  .compare-bar-fill { height: 100%; border-radius: 3px; }
+  .compare-bar-fill.local { background: #f76732; }
+  .compare-bar-fill.national { background: #403d3d; }
+
+  .stacked-bar { display: flex; height: 28px; border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  .seg-owner { background: #f76732; }
+  .seg-renter { background: #403d3d; }
+  .stacked-legend { display: flex; gap: 20px; margin-top: 10px; font-size: 13px; color: #666; }
+  .legend-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+
+  .range-meter { margin-top: 14px; }
+  .range-track { position: relative; background: #f0f0f0; border-radius: 3px; height: 8px; margin: 10px 0 6px 0; }
+  .range-marker {
+    position: absolute; top: -5px; width: 18px; height: 18px; border-radius: 50%;
+    background: #f76732; border: 2px solid #403d3d; transform: translateX(-50%);
   }
-  .index-copy { font-size: 15px; font-weight: 300; line-height: 1.6; color: #555; }
+  .range-labels { display: flex; justify-content: space-between; font-size: 12px; color: #999; }
 
   .cta-block {
     display: none; margin-top: 24px; background: #fffae8; border: 1px solid #dddddd; border-radius: 3px;
@@ -197,6 +208,60 @@ function formatCurrency(n) {
   return '$' + Math.round(n).toLocaleString('en-US');
 }
 
+function buildSparkline(series) {
+  if (!series || series.length < 2) return '';
+  const width = 300, height = 60, pad = 4;
+  const values = series.map(function(p) { return p.value; });
+  const min = Math.min.apply(null, values), max = Math.max.apply(null, values);
+  const range = (max - min) || 1;
+  const points = series.map(function(p, i) {
+    const x = pad + (i / (series.length - 1)) * (width - pad * 2);
+    const y = height - pad - ((p.value - min) / range) * (height - pad * 2);
+    return x.toFixed(1) + ',' + y.toFixed(1);
+  }).join(' ');
+  return '<div class="sparkline-wrap"><svg viewBox="0 0 ' + width + ' ' + height + '" style="width:100%; height:60px; display:block;" preserveAspectRatio="none">' +
+    '<polyline points="' + points + '" fill="none" stroke="#f76732" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>' +
+  '</svg></div>';
+}
+
+function buildRangeMeter(current, low, high, labelLow, labelHigh) {
+  if (current == null || low == null || high == null) return '';
+  const span = (high - low) || 1;
+  const pct = Math.max(0, Math.min(100, ((current - low) / span) * 100));
+  return '<div class="range-meter">' +
+    '<div class="range-track"><div class="range-marker" style="left:' + pct + '%;"></div></div>' +
+    '<div class="range-labels"><span>' + labelLow + '</span><span>' + labelHigh + '</span></div>' +
+  '</div>';
+}
+
+function buildCompareBars(rows) {
+  const max = Math.max.apply(null, rows.map(function(r) { return r.value; })) || 1;
+  return rows.map(function(r) {
+    const pct = (r.value / max) * 100;
+    return '<div class="compare-bar-row"><div class="compare-bar-label"><span>' + r.label + '</span><span>' + formatCurrency(r.value) + '</span></div>' +
+      '<div class="compare-bar-track"><div class="compare-bar-fill ' + r.cls + '" style="width:' + pct + '%;"></div></div></div>';
+  }).join('');
+}
+
+function buildStackedBar(ownerVal, renterVal) {
+  const total = (ownerVal + renterVal) || 1;
+  const ownerPct = Math.round((ownerVal / total) * 100);
+  const renterPct = 100 - ownerPct;
+  return '<div class="stacked-bar"><div class="seg-owner" style="width:' + ownerPct + '%;"></div><div class="seg-renter" style="width:' + renterPct + '%;"></div></div>' +
+    '<div class="stacked-legend">' +
+      '<span><span class="legend-dot" style="background:#f76732;"></span>Homeowners (' + ownerPct + '%)</span>' +
+      '<span><span class="legend-dot" style="background:#403d3d;"></span>Renters (' + renterPct + '%)</span>' +
+    '</div>';
+}
+
+function appreciationSentence(fiveYr) {
+  if (fiveYr == null) return '';
+  if (fiveYr >= 6) return 'Home values here have been climbing quickly — faster than a typical stable market.';
+  if (fiveYr >= 2) return 'Home values here have been rising at a steady, healthy pace.';
+  if (fiveYr >= 0) return 'Home values here have been fairly flat the last few years.';
+  return 'Home values here have dipped somewhat in recent years.';
+}
+
 async function lookupMarket() {
   const zip = document.getElementById('zip').value.trim();
   if (!/^[0-9]{5}$/.test(zip)) {
@@ -233,14 +298,27 @@ async function lookupMarket() {
   }
 
   const ha = data.historicalAppreciation;
+  const rate = data.currentMortgageRate;
   const historicalHtml = ha ?
     '<div class="section-card">' +
       '<p class="section-title">Historical Appreciation</p>' +
-      '<p class="section-source">Live — FHFA House Price Index via FRED, as of ' + ha.asOfYear + '</p>' +
-      '<div class="horizon-row"><span class="horizon-label">5 yr avg/yr</span><span class="horizon-value">' + (ha.fiveYr != null ? ha.fiveYr + '%' : 'N/A') + '</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">10 yr avg/yr</span><span class="horizon-value">' + (ha.tenYr != null ? ha.tenYr + '%' : 'N/A') + '</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">Long-run avg/yr</span><span class="horizon-value">' + (ha.longRun != null ? ha.longRun + '%' : 'N/A') + '</span></div>' +
-      (data.currentMortgageRate != null ? '<p class="conditional-note">Current 30-yr fixed rate: ' + data.currentMortgageRate + '% (live, FRED)</p>' : '') +
+      '<p class="plain-copy">How fast home values have grown here over time.</p>' +
+      buildSparkline(ha.series) +
+      '<div class="horizon-row"><span class="horizon-label">Avg. yearly gain, last 5 years</span><span class="horizon-value">' + (ha.fiveYr != null ? ha.fiveYr + '%' : 'N/A') + '</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">Avg. yearly gain, last 10 years</span><span class="horizon-value">' + (ha.tenYr != null ? ha.tenYr + '%' : 'N/A') + '</span></div>' +
+      '<div class="horizon-row"><span class="horizon-label">Long-run average (since ' + ha.longRunSinceYear + ')</span><span class="horizon-value">' + (ha.longRun != null ? ha.longRun + '%' : 'N/A') + '</span></div>' +
+      '<p class="plain-copy">' + appreciationSentence(ha.fiveYr) + '</p>' +
+      '<p class="cite">Source: FHFA House Price Index (via FRED), county-level, as of ' + ha.asOfYear + '.</p>' +
+    '</div>'
+    : null;
+
+  const rateHtml = rate ?
+    '<div class="section-card">' +
+      '<p class="section-title">Current Mortgage Rate</p>' +
+      '<p class="plain-copy">The going rate on a 30-year home loan right now — this drives your monthly payment more than almost anything else.</p>' +
+      '<p class="stat-value" style="font-size:30px;">' + rate.current + '%</p>' +
+      buildRangeMeter(rate.current, rate.twelveMoLow, rate.twelveMoHigh, rate.twelveMoLow + '% (12mo low)', rate.twelveMoHigh + '% (12mo high)') +
+      '<p class="cite">Source: Freddie Mac PMMS (via FRED).</p>' +
     '</div>'
     : null;
 
@@ -255,14 +333,17 @@ async function lookupMarket() {
 
   const incomeHtml = census.medianIncome ?
     '<div class="section-card"><p class="section-title">Median Household Income</p>' +
-      '<div class="horizon-row"><span class="horizon-label">This Area</span><span class="horizon-value">' + formatCurrency(census.medianIncome.local) + '</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">National Average</span><span class="horizon-value">' + formatCurrency(census.medianIncome.national) + '</span></div>' +
+      '<p class="plain-copy">How much the typical household here earns, compared to the country as a whole.</p>' +
+      buildCompareBars([
+        { label: 'This Area', value: census.medianIncome.local, cls: 'local' },
+        { label: 'National Average', value: census.medianIncome.national, cls: 'national' }
+      ]) +
     '</div>' : null;
 
   const tenureHtml = census.tenure ?
     '<div class="section-card"><p class="section-title">Homeowners &amp; Renters</p>' +
-      '<div class="horizon-row"><span class="horizon-label">Homeowners</span><span class="horizon-value">' + (census.tenure.homeowners / 1000).toFixed(0) + 'k</span></div>' +
-      '<div class="horizon-row"><span class="horizon-label">Renters</span><span class="horizon-value">' + (census.tenure.renters / 1000).toFixed(0) + 'k</span></div>' +
+      '<p class="plain-copy">Who owns vs. rents in this area.</p>' +
+      buildStackedBar(census.tenure.homeowners, census.tenure.renters) +
     '</div>' : null;
 
   const demoCardHtml = demoHtml ? '<div class="section-card"><p class="section-title">Demographics By Age</p>' + demoHtml + '</div>' : null;
@@ -270,13 +351,22 @@ async function lookupMarket() {
   const permitsHtml = census.permitsPerYear ?
     '<div class="section-card"><p class="section-title">Homes Being Built</p><p class="stat-value">' + census.permitsPerYear.toLocaleString() + '</p></div>' : null;
 
+  // Affordability meter is code-complete but can't be exercised with real
+  // data yet - census.affordabilityIndex stays null until both income AND
+  // median price (Tier 2, not built) are live. Verified by hand with a
+  // mock value in the browser console; not verifiable against real data.
   const affordabilityHtml = census.affordabilityIndex ?
-    '<div class="section-card"><p class="section-title">Affordability Index</p><div class="index-badge-row"><div class="index-badge">' + census.affordabilityIndex + '</div></div></div>' : null;
+    '<div class="section-card"><p class="section-title">Affordability Index</p>' +
+      '<p class="plain-copy">Can a typical household here afford the typical home? Higher is easier.</p>' +
+      buildRangeMeter(census.affordabilityIndex, 50, 150, 'Harder to Afford', 'Easier to Afford') +
+      '<p class="plain-copy">At ' + census.affordabilityIndex + ', a household earning the median income here can ' + (census.affordabilityIndex >= 100 ? 'more than afford' : 'not quite afford') + ' the median-priced home with 20% down.</p>' +
+    '</div>' : null;
 
   // One honest, compact list of what's not live yet instead of a wall of
   // separate "Pending" cards - keeps the real content (above) prominent.
   const pendingLabels = [];
   if (!historicalHtml) pendingLabels.push('historical appreciation');
+  if (!rateHtml) pendingLabels.push('current mortgage rate');
   if (!data.medianPrice) pendingLabels.push('median home price');
   if (!data.medianDaysOnMarket) pendingLabels.push('days on market');
   if (!data.forecastedAppreciation) pendingLabels.push('5-year price forecast');
@@ -303,6 +393,7 @@ async function lookupMarket() {
     '</div>' +
 
     (historicalHtml || '') +
+    (rateHtml || '') +
     (incomeHtml || '') +
     (tenureHtml || '') +
     (demoCardHtml || '') +
