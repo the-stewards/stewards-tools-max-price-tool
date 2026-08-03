@@ -21,13 +21,12 @@
 // methodology (income + rate + price) no longer has a rate input -
 // needs a revised approach before it's built, flagged below.
 //
-// CENSUS — CODE-COMPLETE, GATED ON CENSUS_API_KEY (2026-08-01):
-//   Confirmed 2026-08-01 that Census's keyless testing tier is gone —
-//   every request now hard-requires a key (verified: a real unkeyed
-//   call returns an HTML "Missing Key" page, not JSON). Ryan's key
-//   signup emails aren't arriving; separate issue, being chased.
+// CENSUS — CENSUS_API_KEY set 2026-08-02 (delivery issue finally
+// resolved). Confirmed 2026-08-01 that Census's keyless testing tier is
+// gone — every request now hard-requires a key (verified: a real
+// unkeyed call returns an HTML "Missing Key" page, not JSON).
 //
-//   Because there was no way to test a live authenticated response,
+//   getMedianIncome() and getTenure() below were originally written
 //   getMedianIncome() and getTenure() below are written against
 //   Census's documented, stable ACS API contract (array-of-arrays,
 //   header row + one data row per geography — unchanged across ACS
